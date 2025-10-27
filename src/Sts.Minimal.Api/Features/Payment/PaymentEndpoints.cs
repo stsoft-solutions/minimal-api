@@ -21,10 +21,17 @@ public static class PaymentEndpoints
         group.MapGet("/{paymentId:int}", GetPayment.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("GetPayment")
-            .Produces<GetPaymentResponse>(StatusCodes.Status200OK)
+            .Produces<GetPaymentResponse>()
             .Produces(StatusCodes.Status404NotFound)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapGet("/", GetPayments.HandleAsync)
+            .AddDataAnnotationsValidation()
+            .WithName("GetPayments")
+            .Produces<GetPaymentsItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
         
         return group;
     }
