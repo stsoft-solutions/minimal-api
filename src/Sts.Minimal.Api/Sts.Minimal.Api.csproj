@@ -13,7 +13,6 @@
     <ItemGroup>
         <Folder Include="Features\Broker\"/>
         <Folder Include="Infrastructure\Middleware\"/>
-        <Folder Include="Infrastructure\Validation\"/>
     </ItemGroup>
 
 </Project>
