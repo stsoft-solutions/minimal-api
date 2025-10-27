@@ -1,0 +1,4 @@
+GET {{HostAddress}}/payments/
+Accept: application/json
+
+###
