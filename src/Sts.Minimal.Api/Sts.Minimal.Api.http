@@ -1,4 +1,51 @@
-GET {{HostAddress}}/payments/
+### Get unexisting payment by ID
+GET {{HostAddress}}/payments/23
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully. Not found", function () {
+        client.assert(response.status === 404, "Response status is 404");
+    });
+%}
+
+### Get payment with prohibited ID
+GET {{HostAddress}}/payments/666
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully. Prohibited ID", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.paymentId[0] === "Payment ID cannot be 666", "Error message is correct");
+    });
+%}
+
+
+### Get existing payment by ID
+GET {{HostAddress}}/payments/1
 Accept: application/json
 
-###
+> {%
+    client.test("Request executed successfully. Payment found", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.id === 1, "Payment ID is correct");
+    });
+%}
+
+### Get payment with out of range ID
+GET {{HostAddress}}/payments/5000
+Accept: application/json
+
+> {%
+    client.test("Request executed successfully. Out of range ID", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.paymentId[0] === "Payment ID must be between 1 and 1000", "Error message is correct");
+    });
+%}

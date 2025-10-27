@@ -28,7 +28,7 @@ public static class GetPayment
     /// </list>
     /// </returns>
     public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem>> HandleAsync(
-        [FromQuery] [Required] [Range(1, 1000)]
+        [FromRoute(Name = "paymentId")] [Required] [Range(1, 1000)]
         int paymentId
     )
     {
@@ -42,7 +42,7 @@ public static class GetPayment
                 // Validate paymentId
                 var errors = new Dictionary<string, string[]>
                 {
-                    { "paymentId", ["Payment ID cannot be 666."] }
+                    { "paymentId", ["Payment ID cannot be 666"] }
                 };
 
                 return TypedResults.ValidationProblem(errors);

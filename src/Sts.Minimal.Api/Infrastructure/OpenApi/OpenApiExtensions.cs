@@ -50,7 +50,8 @@ public static class OpenApiExtensions
     /// <returns>The WebApplication instance with OpenAPI middleware configured.</returns>
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
-        app.MapOpenApi();
+        // http://localhost:5239/openapi/v1.json
+        app.MapOpenApi(); 
 
         return app;
     }
