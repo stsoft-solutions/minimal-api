@@ -12,10 +12,23 @@ namespace Sts.Minimal.Api.Infrastructure.Validation;
 public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 {
     private readonly ParameterInfo[] _parameters;
+    // Precompute validation attributes and member names per parameter to avoid reflection on every request
+    private readonly (string MemberName, ValidationAttribute[] Attributes)[] _precomputed;
 
     public DataAnnotationsValidationFilter(ParameterInfo[] parameters)
     {
         _parameters = parameters ?? [];
+        _precomputed = new (string, ValidationAttribute[])[_parameters.Length];
+        for (var i = 0; i < _parameters.Length; i++)
+        {
+            var p = _parameters[i];
+            var attrs = p
+                .GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
+                .OfType<ValidationAttribute>()
+                .ToArray();
+            var memberName = p.Name ?? $"arg{i}";
+            _precomputed[i] = (memberName, attrs);
+        }
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -25,19 +38,11 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 
         for (var i = 0; i < _parameters.Length && i < context.Arguments.Count; i++)
         {
-            var parameter = _parameters[i];
             var value = context.Arguments[i];
-
-            // Find DataAnnotations validation attributes on the parameter
-            var validationAttributes = parameter
-                .GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
-                .OfType<ValidationAttribute>()
-                .ToArray();
+            var (memberName, validationAttributes) = _precomputed[i];
 
             if (validationAttributes.Length == 0)
                 continue;
-
-            var memberName = parameter.Name ?? $"arg{i}";
 
             foreach (var attr in validationAttributes)
             {
@@ -48,36 +53,35 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 };
 
                 var result = attr.GetValidationResult(value, validationContext);
-                if (result != ValidationResult.Success)
+                
+                if (result == ValidationResult.Success) continue;
+                
+                errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                if (!errors.TryGetValue(memberName, out var list))
                 {
-                    errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                    if (!errors.TryGetValue(memberName, out var list))
-                    {
-                        list = new List<string>();
-                        errors[memberName] = list;
-                    }
+                    list = new List<string>();
+                    errors[memberName] = list;
+                }
 
-                    var message = result?.ErrorMessage ?? attr.FormatErrorMessage(memberName);
-                    if (!string.IsNullOrWhiteSpace(message))
-                    {
-                        list.Add(message);
-                    }
+                var message = result?.ErrorMessage ?? attr.FormatErrorMessage(memberName);
+                if (!string.IsNullOrWhiteSpace(message))
+                {
+                    list.Add(message);
                 }
             }
         }
 
-        if (errors is not null && errors.Count > 0)
-        {
-            // Convert to the format expected by ValidationProblem
-            var dict = errors.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value.Count == 0 ? Array.Empty<string>() : kvp.Value.ToArray(),
-                StringComparer.OrdinalIgnoreCase);
+        // Proceed to next filter/handler if no validation issues
+        if (errors is null || errors.Count <= 0) return await next(context);
+        
+        // Convert to the format expected by ValidationProblem
+        var dict = errors.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Count == 0 ? Array.Empty<string>() : kvp.Value.ToArray(),
+            StringComparer.OrdinalIgnoreCase);
 
-            return TypedResults.ValidationProblem(dict);
-        }
+        return TypedResults.ValidationProblem(dict);
 
         // Proceed to next filter/handler if no validation issues
-        return await next(context);
     }
 }
