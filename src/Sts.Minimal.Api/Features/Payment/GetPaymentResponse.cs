@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Sts.Minimal.Api.Features.Payment;
+﻿namespace Sts.Minimal.Api.Features.Payment;
 
 public sealed class GetPaymentResponse
 {

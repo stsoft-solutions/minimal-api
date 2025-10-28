@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Sts.Minimal.Api.Infrastructure.Validation;
 
@@ -12,6 +11,7 @@ namespace Sts.Minimal.Api.Infrastructure.Validation;
 public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 {
     private readonly ParameterInfo[] _parameters;
+
     // Precompute validation attributes and member names per parameter to avoid reflection on every request
     private readonly (string MemberName, ValidationAttribute[] Attributes)[] _precomputed;
 
@@ -23,7 +23,7 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
         {
             var p = _parameters[i];
             var attrs = p
-                .GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
+                .GetCustomAttributes(typeof(ValidationAttribute), true)
                 .OfType<ValidationAttribute>()
                 .ToArray();
             var memberName = p.Name ?? $"arg{i}";
@@ -47,15 +47,15 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             foreach (var attr in validationAttributes)
             {
                 // Build a validation context to let attributes compute formatted messages
-                var validationContext = new ValidationContext(instance: value ?? new object(), serviceProvider: null, items: null)
+                var validationContext = new ValidationContext(value ?? new object(), null, null)
                 {
                     MemberName = memberName
                 };
 
                 var result = attr.GetValidationResult(value, validationContext);
-                
+
                 if (result == ValidationResult.Success) continue;
-                
+
                 errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 if (!errors.TryGetValue(memberName, out var list))
                 {
@@ -64,16 +64,13 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 }
 
                 var message = result?.ErrorMessage ?? attr.FormatErrorMessage(memberName);
-                if (!string.IsNullOrWhiteSpace(message))
-                {
-                    list.Add(message);
-                }
+                if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
             }
         }
 
         // Proceed to next filter/handler if no validation issues
         if (errors is null || errors.Count <= 0) return await next(context);
-        
+
         // Convert to the format expected by ValidationProblem
         var dict = errors.ToDictionary(
             kvp => kvp.Key,

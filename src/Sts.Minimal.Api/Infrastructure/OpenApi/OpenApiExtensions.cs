@@ -51,7 +51,9 @@ public static class OpenApiExtensions
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
         // http://localhost:5239/openapi/v1.json
-        app.MapOpenApi(); 
+        app.MapOpenApi();
+
+        app.UseExceptionHandler();
 
         return app;
     }

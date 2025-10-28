@@ -1,7 +1,4 @@
-﻿using System.Reflection;
-using Microsoft.AspNetCore.Builder;
-
-namespace Sts.Minimal.Api.Infrastructure.Validation;
+﻿namespace Sts.Minimal.Api.Infrastructure.Validation;
 
 /// <summary>
 /// Extension methods to simplify adding common endpoint filters.
@@ -13,7 +10,7 @@ public static class EndpointFilterBuilderExtensions
     /// System.ComponentModel.DataAnnotations attributes.
     /// </summary>
     /// <param name="builder">The route handler builder.</param>
-    /// <returns>The same <see cref="RouteHandlerBuilder"/> for chaining.</returns>
+    /// <returns>The same <see cref="RouteHandlerBuilder" /> for chaining.</returns>
     public static RouteHandlerBuilder AddDataAnnotationsValidation(this RouteHandlerBuilder builder)
     {
         return builder.AddEndpointFilterFactory((factoryContext, next) =>

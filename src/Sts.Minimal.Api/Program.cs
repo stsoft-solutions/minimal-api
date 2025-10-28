@@ -16,4 +16,3 @@ app.UseOpenApiInfrastructure();
 app.MapPaymentEndpoints();
 
 app.Run();
- 

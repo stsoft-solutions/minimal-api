@@ -6,7 +6,6 @@ namespace Sts.Minimal.Api.Features.Payment;
 public enum PaymentStatus
 {
     Pending,
-    [JsonStringEnumMemberName("FINISHED")]
-    Completed,
+    [JsonStringEnumMemberName("FINISHED")] Completed,
     Failed
 }

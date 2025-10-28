@@ -14,17 +14,20 @@ public static class GetPayment
     /// </summary>
     /// <param name="paymentId">The ID of the payment to retrieve. Must be a number between 1 and 1000.</param>
     /// <returns>
-    /// A <see cref="Results"/> object that can represent the following outcomes:
+    /// A <see cref="Results" /> object that can represent the following outcomes:
     /// <list type="bullet">
-    /// <item>
-    /// <description>An <see cref="Ok{TValue}"/> result containing <see cref="GetPaymentResponse"/> if the payment is found.</description>
-    /// </item>
-    /// <item>
-    /// <description>A <see cref="NotFound"/> result if the payment is not found.</description>
-    /// </item>
-    /// <item>
-    /// <description>A <see cref="ValidationProblem"/> result if the input data is invalid.</description>
-    /// </item>
+    ///     <item>
+    ///         <description>
+    ///         An <see cref="Ok{TValue}" /> result containing <see cref="GetPaymentResponse" /> if the payment is
+    ///         found.
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <description>A <see cref="NotFound" /> result if the payment is not found.</description>
+    ///     </item>
+    ///     <item>
+    ///         <description>A <see cref="ValidationProblem" /> result if the input data is invalid.</description>
+    ///     </item>
     /// </list>
     /// </returns>
     public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem>> HandleAsync(

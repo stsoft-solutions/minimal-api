@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Sts.Minimal.Api.Infrastructure.Validation;
+﻿using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
@@ -11,8 +10,8 @@ public static class PaymentEndpoints
     /// <summary>
     /// Maps the payment-related API endpoints to the provided route builder.
     /// </summary>
-    /// <param name="routes">The <see cref="IEndpointRouteBuilder"/> used to define the payment API endpoints.</param>
-    /// <returns>A <see cref="RouteGroupBuilder"/> that represents the mapped payment endpoints.</returns>
+    /// <param name="routes">The <see cref="IEndpointRouteBuilder" /> used to define the payment API endpoints.</param>
+    /// <returns>A <see cref="RouteGroupBuilder" /> that represents the mapped payment endpoints.</returns>
     public static RouteGroupBuilder MapPaymentEndpoints(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/payments")
@@ -26,13 +25,20 @@ public static class PaymentEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapGet("/", GetPayments.HandleAsync)
+        group.MapGet("/query", GetPayments.HandleAsync)
             .AddDataAnnotationsValidation()
-            .WithName("GetPayments")
+            .WithName("GetPaymentsQuery")
             .Produces<GetPaymentsItem>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);
-        
+
+        group.MapGet("/query-param", GetPaymentsParam.HandleAsync)
+            .AddDataAnnotationsValidation()
+            .WithName("GetPaymentsQueryParam")
+            .Produces<GetPaymentsItem>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return group;
     }
 }
