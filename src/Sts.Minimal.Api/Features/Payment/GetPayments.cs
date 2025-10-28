@@ -33,8 +33,8 @@ public static class GetPaymentsParam
 }
 
 public record GetPaymentsRequest(
-    [Description("Payment ID")]
-    [Range(1, 1000)]
+    [property: Description("Payment ID")]
+    [property: Range(1, 1000)]
     int? paymentId,
-    [Description("Value date")] DateOnly? valueDate,
-    [Description("Payment status")] PaymentStatus? status);
+    [property: Description("Value date")] DateOnly? valueDate,
+    [property: Description("Payment status")] PaymentStatus? status);

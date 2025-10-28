@@ -41,30 +41,58 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             var value = context.Arguments[i];
             var (memberName, validationAttributes) = _precomputed[i];
 
-            if (validationAttributes.Length == 0)
-                continue;
-
-            foreach (var attr in validationAttributes)
+            if (validationAttributes.Length > 0)
             {
-                // Build a validation context to let attributes compute formatted messages
-                var validationContext = new ValidationContext(value ?? new object(), null, null)
+                foreach (var attr in validationAttributes)
                 {
-                    MemberName = memberName
-                };
+                    // Build a validation context to let attributes compute formatted messages
+                    var validationContext = new ValidationContext(value ?? new object(), null, null)
+                    {
+                        MemberName = memberName
+                    };
 
-                var result = attr.GetValidationResult(value, validationContext);
+                    var result = attr.GetValidationResult(value, validationContext);
 
-                if (result == ValidationResult.Success) continue;
+                    if (result == ValidationResult.Success) continue;
 
-                errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                if (!errors.TryGetValue(memberName, out var list))
-                {
-                    list = new List<string>();
-                    errors[memberName] = list;
+                    errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                    if (!errors.TryGetValue(memberName, out var list))
+                    {
+                        list = new List<string>();
+                        errors[memberName] = list;
+                    }
+
+                    var message = result?.ErrorMessage ?? attr.FormatErrorMessage(memberName);
+                    if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
                 }
+            }
+            else if (value is not null)
+            {
+                // No parameter-level validation attributes present.
+                // Validate complex object arguments (e.g., [AsParameters] records) using DataAnnotations on their properties.
+                var validationResults = new List<ValidationResult>();
+                var objectContext = new ValidationContext(value, null, null);
+                // ValidateAllProperties ensures attributes like [Range] on properties are evaluated
+                Validator.TryValidateObject(value, objectContext, validationResults, validateAllProperties: true);
 
-                var message = result?.ErrorMessage ?? attr.FormatErrorMessage(memberName);
-                if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
+                if (validationResults.Count > 0)
+                {
+                    errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var vr in validationResults)
+                    {
+                        var names = vr.MemberNames?.Any() == true ? vr.MemberNames : new[] { memberName };
+                        var message = string.IsNullOrWhiteSpace(vr.ErrorMessage) ? "Invalid value." : vr.ErrorMessage!;
+                        foreach (var name in names)
+                        {
+                            if (!errors.TryGetValue(name, out var list))
+                            {
+                                list = new List<string>();
+                                errors[name] = list;
+                            }
+                            list.Add(message);
+                        }
+                    }
+                }
             }
         }
 
