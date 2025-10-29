@@ -12,7 +12,7 @@ public sealed class IsoDateOnlyAttribute : ValidationAttribute
 {
     public IsoDateOnlyAttribute()
     {
-        // Default message follows MVC-style wording used by built-in model binding errors
+        // The default message follows MVC-style wording used by built-in model binding errors
         // Example: The value '2025-31-31' is not valid for valueDate.
         ErrorMessage = "The value '{0}' is not valid for {1}.";
     }
