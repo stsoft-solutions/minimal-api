@@ -37,4 +37,5 @@ public record GetPaymentsRequest(
     [property: Range(1, 1000)]
     int? paymentId,
     [property: Description("Value date")] DateOnly? valueDate,
-    [property: Description("Payment status")] PaymentStatus? status);
+    [property: Description("Payment status")]
+    PaymentStatus? status);

@@ -73,7 +73,7 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 var validationResults = new List<ValidationResult>();
                 var objectContext = new ValidationContext(value, null, null);
                 // ValidateAllProperties ensures attributes like [Range] on properties are evaluated
-                Validator.TryValidateObject(value, objectContext, validationResults, validateAllProperties: true);
+                Validator.TryValidateObject(value, objectContext, validationResults, true);
 
                 if (validationResults.Count > 0)
                 {
@@ -89,6 +89,7 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                                 list = new List<string>();
                                 errors[name] = list;
                             }
+
                             list.Add(message);
                         }
                     }
