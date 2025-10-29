@@ -1,5 +1,7 @@
-﻿using Microsoft.OpenApi;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 
@@ -20,6 +22,10 @@ public static class OpenApiExtensions
         {
             options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
 
+            // Add Scalar transformers
+            options.AddScalarTransformers();
+
+            // Customize the OpenAPI document
             options.AddDocumentTransformer((document, _, _) =>
             {
                 document.Info.Version = "v1";
@@ -51,9 +57,30 @@ public static class OpenApiExtensions
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
         // http://localhost:5239/openapi/v1.json
+        app.Logger.LogInformation("Configuring OpenAPI at http://localhost:5239/openapi/v1.json");
         app.MapOpenApi();
 
+        // Use Exception Handler Middleware
         app.UseExceptionHandler();
+
+        // http://localhost:5239/scalar
+        app.Logger.LogInformation("Configuring Scalar API Reference at http://localhost:5239/scalar");
+        app.MapScalarApiReference(options =>
+        {
+            options.EnabledClients =
+            [
+                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient, ScalarClient.Axios
+            ];
+            options.EnabledTargets =
+            [
+                ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell
+            ];
+            options.Authentication = new ScalarAuthenticationOptions
+            {
+                PreferredSecuritySchemes = [JwtBearerDefaults.AuthenticationScheme]
+            };
+        });
+
 
         return app;
     }

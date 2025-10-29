@@ -5,37 +5,27 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
+/// <summary>
+/// Provides functionality to retrieve payment information based on query parameters.
+/// </summary>
 public static class GetPayments
 {
     public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem>> HandleAsync(
-        [FromQuery(Name = "paymentId")] [Range(1, 1000)]
+        [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
         int? paymentId,
-        [FromQuery(Name = "valueDate")] DateOnly? valueDate,
-        [FromQuery(Name = "status")] PaymentStatus? status
+        [FromQuery(Name = "valueDate")] [Description("Value date")]
+        DateOnly? valueDate,
+        [FromQuery(Name = "status")] [Description("Payment's status")]
+        PaymentStatus? status
     )
     {
+        // Small delay to simulate async operation
+        await Task.Delay(50);
+        
+        // Simulate fetching payments from a data source
         var payments = new List<GetPaymentsItem>();
 
+        // Here you would typically filter payments based on the provided parameters.
         return TypedResults.Ok(payments.AsEnumerable());
     }
 }
-
-public static class GetPaymentsParam
-{
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem>> HandleAsync(
-        [AsParameters] GetPaymentsRequest request
-    )
-    {
-        var payments = new List<GetPaymentsItem>();
-
-        return TypedResults.Ok(payments.AsEnumerable());
-    }
-}
-
-public record GetPaymentsRequest(
-    [property: Description("Payment ID")]
-    [property: Range(1, 1000)]
-    int? paymentId,
-    [property: Description("Value date")] DateOnly? valueDate,
-    [property: Description("Payment status")]
-    PaymentStatus? status);

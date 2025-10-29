@@ -1,5 +1,9 @@
 ﻿namespace Sts.Minimal.Api.Features.Payment;
 
+/// <summary>
+/// Represents the response to a payment retrieval request.
+/// Contains details about the payment such as its status, amount, and associated metadata.
+/// </summary>
 public sealed class GetPaymentResponse
 {
     public int Id { get; set; }

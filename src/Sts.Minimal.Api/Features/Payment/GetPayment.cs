@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,10 @@ public static class GetPayment
     /// </list>
     /// </returns>
     public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem>> HandleAsync(
-        [FromRoute(Name = "paymentId")] [Required] [Range(1, 1000)]
+        [FromRoute(Name = "paymentId")]
+        [Required]
+        [Range(1, 1000)]
+        [Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
         int paymentId
     )
     {

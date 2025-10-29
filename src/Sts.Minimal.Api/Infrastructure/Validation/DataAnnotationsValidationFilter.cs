@@ -97,17 +97,17 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             }
         }
 
-        // Proceed to next filter/handler if no validation issues
+        // Proceed to the next filter / handler if no validation issues
         if (errors is null || errors.Count <= 0) return await next(context);
 
         // Convert to the format expected by ValidationProblem
         var dict = errors.ToDictionary(
             kvp => kvp.Key,
-            kvp => kvp.Value.Count == 0 ? Array.Empty<string>() : kvp.Value.ToArray(),
+            kvp => kvp.Value.Count == 0 ? [] : kvp.Value.ToArray(),
             StringComparer.OrdinalIgnoreCase);
 
         return TypedResults.ValidationProblem(dict);
 
-        // Proceed to next filter/handler if no validation issues
+        // Proceed to the next filter / handler if no validation issues
     }
 }
