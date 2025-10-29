@@ -2,8 +2,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Sts.Minimal.Api.Features.Payment;
+namespace Sts.Minimal.Api.Features.Payment.Model;
 
 /// <summary>
 /// Represents a request to retrieve payment records based on specific query parameters.
@@ -16,12 +17,12 @@ namespace Sts.Minimal.Api.Features.Payment;
 public record GetPaymentsRequest(
     [property: Description("Payment ID")]
     [property: Range(1, 1000)]
-    [property: JsonPropertyName("payment-id")]
+    [property: FromQuery(Name = "payment-id")]
     int? PaymentId,
     [property: Description("Value date")]
-    [property: JsonPropertyName("value-date")]
+    [property: FromQuery(Name = "value-date")]
     DateOnly? ValueDate,
     [property: Description("Payment status")]
-    [property: JsonPropertyName("status")]
+    [property: FromQuery(Name = "status")]
     PaymentStatus? Status
 );

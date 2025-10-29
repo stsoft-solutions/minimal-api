@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Sts.Minimal.Api.Features.Payment.Model;
 
 namespace Sts.Minimal.Api.Features.Payment;
 

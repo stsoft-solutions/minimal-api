@@ -1,4 +1,4 @@
-﻿namespace Sts.Minimal.Api.Features.Payment;
+﻿namespace Sts.Minimal.Api.Features.Payment.Model;
 
 /// <summary>
 /// Represents the response to a payment retrieval request.
