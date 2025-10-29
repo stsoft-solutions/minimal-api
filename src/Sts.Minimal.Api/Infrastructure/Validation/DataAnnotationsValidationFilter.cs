@@ -75,23 +75,22 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 // ValidateAllProperties ensures attributes like [Range] on properties are evaluated
                 Validator.TryValidateObject(value, objectContext, validationResults, true);
 
-                if (validationResults.Count > 0)
+                if (validationResults.Count <= 0) continue;
+                
+                errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var vr in validationResults)
                 {
-                    errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                    foreach (var vr in validationResults)
+                    var names = vr.MemberNames.Any() ? vr.MemberNames : [memberName];
+                    var message = string.IsNullOrWhiteSpace(vr.ErrorMessage) ? "Invalid value." : vr.ErrorMessage!;
+                    foreach (var name in names)
                     {
-                        var names = vr.MemberNames?.Any() == true ? vr.MemberNames : new[] { memberName };
-                        var message = string.IsNullOrWhiteSpace(vr.ErrorMessage) ? "Invalid value." : vr.ErrorMessage!;
-                        foreach (var name in names)
+                        if (!errors.TryGetValue(name, out var list))
                         {
-                            if (!errors.TryGetValue(name, out var list))
-                            {
-                                list = new List<string>();
-                                errors[name] = list;
-                            }
-
-                            list.Add(message);
+                            list = [];
+                            errors[name] = list;
                         }
+
+                        list.Add(message);
                     }
                 }
             }
@@ -107,7 +106,5 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             StringComparer.OrdinalIgnoreCase);
 
         return TypedResults.ValidationProblem(dict);
-
-        // Proceed to the next filter / handler if no validation issues
     }
 }
