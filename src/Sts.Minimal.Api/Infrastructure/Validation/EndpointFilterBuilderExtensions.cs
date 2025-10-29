@@ -15,7 +15,7 @@ public static class EndpointFilterBuilderExtensions
     {
         return builder.AddEndpointFilterFactory((factoryContext, next) =>
         {
-            var parameters = factoryContext.MethodInfo?.GetParameters() ?? [];
+            var parameters = factoryContext.MethodInfo.GetParameters() ?? [];
             var filter = new DataAnnotationsValidationFilter(parameters);
             return context => filter.InvokeAsync(context, next);
         });
