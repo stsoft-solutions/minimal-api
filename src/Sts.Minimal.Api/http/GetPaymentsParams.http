@@ -71,13 +71,13 @@ Accept: application/json, application/problem+json
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.paymentId[0] === "The field paymentId must be between 1 and 1000.", "Error message is correct");
+        client.assert(response.body.errors["payment-id"][0] === "The field payment-id must be between 1 and 1000.", "Error message is correct");
     });
 %}
 
 
 ### Pass invalid valueDate
-GET {{HostAddress}}/payments/query-param?valueDate=invalid-date
+GET {{HostAddress}}/payments/query-param?value-date=invalid-date
 Accept: application/json, application/problem+json
 
 > {%
@@ -87,7 +87,7 @@ Accept: application/json, application/problem+json
 %}
 
 ### Pass invalid valueDate (wrong date)
-GET {{HostAddress}}/payments/query-param?valueDate=2025-31-31
+GET {{HostAddress}}/payments/query-param?value-date=2025-31-31
 Accept: application/json, application/problem+json
 
 > {%

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Sts.Minimal.Api.Infrastructure.Validation;
 
@@ -69,28 +70,52 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             else if (value is not null)
             {
                 // No parameter-level validation attributes present.
-                // Validate complex object arguments (e.g., [AsParameters] records) using DataAnnotations on their properties.
-                var validationResults = new List<ValidationResult>();
-                var objectContext = new ValidationContext(value, null, null);
-                // ValidateAllProperties ensures attributes like [Range] on properties are evaluated
-                Validator.TryValidateObject(value, objectContext, validationResults, true);
+                // Manually validate complex object properties so we can use binding names (e.g., FromQuery(Name = "payment-id")).
+                var obj = value;
+                var type = obj.GetType();
+                var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
-                if (validationResults.Count <= 0) continue;
-
-                errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                foreach (var vr in validationResults)
+                foreach (var prop in props)
                 {
-                    var names = vr.MemberNames.Any() ? vr.MemberNames : [memberName];
-                    var message = string.IsNullOrWhiteSpace(vr.ErrorMessage) ? "Invalid value." : vr.ErrorMessage!;
-                    foreach (var name in names)
+                    var propValidationAttributes = prop
+                        .GetCustomAttributes(typeof(ValidationAttribute), true)
+                        .OfType<ValidationAttribute>()
+                        .ToArray();
+
+                    if (propValidationAttributes.Length == 0) continue;
+
+                    // Determine the external/binding name for the property
+                    var fromQuery = prop.GetCustomAttributes(typeof(FromQueryAttribute), true)
+                        .OfType<FromQueryAttribute>()
+                        .FirstOrDefault();
+
+                    var bindingName = !string.IsNullOrWhiteSpace(fromQuery?.Name)
+                        ? fromQuery!.Name!
+                        : (prop.Name.Length > 0
+                            ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
+                            : prop.Name);
+
+                    var propValue = prop.GetValue(obj);
+
+                    foreach (var attr in propValidationAttributes)
                     {
-                        if (!errors.TryGetValue(name, out var list))
+                        var vc = new ValidationContext(propValue ?? new object(), null, null)
+                        {
+                            MemberName = bindingName
+                        };
+
+                        var result = attr.GetValidationResult(propValue, vc);
+                        if (result == ValidationResult.Success) continue;
+
+                        errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                        if (!errors.TryGetValue(bindingName, out var list))
                         {
                             list = [];
-                            errors[name] = list;
+                            errors[bindingName] = list;
                         }
 
-                        list.Add(message);
+                        var message = result?.ErrorMessage ?? attr.FormatErrorMessage(bindingName);
+                        if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
                     }
                 }
             }
