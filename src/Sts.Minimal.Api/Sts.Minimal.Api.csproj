@@ -16,7 +16,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Features\Broker\"/>
         <Folder Include="Infrastructure\Middleware\"/>
     </ItemGroup>
 

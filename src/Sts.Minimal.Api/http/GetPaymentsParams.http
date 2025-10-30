@@ -62,7 +62,7 @@ Accept: application/json, application/problem+json
 
 
 ### Pass invalid payment ID
-GET {{HostAddress}}/payments/query-param?paymentId=5000
+GET {{HostAddress}}/payments/query-param?payment-id=5000
 Accept: application/json, application/problem+json
 
 > {%
