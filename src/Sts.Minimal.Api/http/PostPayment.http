@@ -4,8 +4,8 @@ Accept: application/json, application/problem+json
 Content-Type: application/json
 
 {
-    "amount": 90,
-    "currency": "USD",
+  "amount": 90,
+  "currency": "USD",
   "valueDate": "2024-06-30"
 }
 
@@ -30,7 +30,7 @@ Content-Type: application/json
 
 > {%
     client.test("Request executed successfully.", function () {
-        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.status === 400, "Response status is 200");
         client.assert(response.body.hasOwnProperty("paymentId"), "Response body has paymentId");
     });
 %}

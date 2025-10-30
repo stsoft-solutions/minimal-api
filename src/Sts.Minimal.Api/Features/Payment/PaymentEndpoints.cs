@@ -48,6 +48,7 @@ public static class PaymentEndpoints
             .Stable();
 
         group.MapPost("/", PostPayment.HandleAsync)
+            .AddDataAnnotationsValidation()
             .WithName("PostPayment")
             .WithDescription("Processes a new payment.")
             .Produces<PostPaymentResponse>()
