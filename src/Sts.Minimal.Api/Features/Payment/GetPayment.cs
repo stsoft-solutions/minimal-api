@@ -32,13 +32,14 @@ public static class GetPayment
     ///     </item>
     /// </list>
     /// </returns>
-    public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
-        [FromRoute(Name = "paymentId")]
-        [Required]
-        [Range(1, 1000)]
-        [Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
-        int paymentId
-    )
+    public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem, ProblemHttpResult>>
+        HandleAsync(
+            [FromRoute(Name = "paymentId")]
+            [Required]
+            [Range(1, 1000)]
+            [Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
+            int paymentId
+        )
     {
         // Small delay to simulate async operation
         await Task.Delay(50);

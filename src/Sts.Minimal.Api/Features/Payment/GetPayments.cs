@@ -11,14 +11,15 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// </summary>
 public static class GetPayments
 {
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
-        [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
-        int? paymentId,
-        [FromQuery(Name = "valueDate")] [Description("Value date")]
-        DateOnly? valueDate,
-        [FromQuery(Name = "status")] [Description("Payment's status")]
-        PaymentStatus? status
-    )
+    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>>
+        HandleAsync(
+            [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
+            int? paymentId,
+            [FromQuery(Name = "valueDate")] [Description("Value date")]
+            DateOnly? valueDate,
+            [FromQuery(Name = "status")] [Description("Payment's status")]
+            PaymentStatus? status
+        )
     {
         // Small delay to simulate async operation
         await Task.Delay(50);

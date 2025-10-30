@@ -18,9 +18,10 @@ public static class GetPaymentsParam
     /// - A NotFound result if no payments match the criteria.
     /// - A ValidationProblem result if input validation errors occur.
     /// </returns>
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
-        [AsParameters] GetPaymentsRequest request
-    )
+    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>>
+        HandleAsync(
+            [AsParameters] GetPaymentsRequest request
+        )
     {
         var payments = new List<GetPaymentsItem>();
 

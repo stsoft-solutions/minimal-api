@@ -69,7 +69,8 @@ public static class OpenApiExtensions
         {
             options.EnabledClients =
             [
-                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient, ScalarClient.Axios
+                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient,
+                ScalarClient.Axios
             ];
             options.EnabledTargets =
             [
