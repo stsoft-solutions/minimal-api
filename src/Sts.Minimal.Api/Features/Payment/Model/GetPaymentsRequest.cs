@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
+using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment.Model;
 
@@ -20,8 +22,24 @@ public record GetPaymentsRequest(
     int? PaymentId,
     [property: Description("Value date")]
     [property: FromQuery(Name = "value-date")]
-    DateOnly? ValueDate,
+    [property: IsoDateOnly]
+    string? ValueDateRaw,
     [property: Description("Payment status")]
     [property: FromQuery(Name = "status")]
     PaymentStatus? Status
-);
+)
+{
+    /// <summary>
+    /// Parsed value of <c>value-date</c> when provided in ISO format (yyyy-MM-dd). Returns null if missing or invalid.
+    /// </summary>
+    public DateOnly? ValueDate
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(ValueDateRaw)) return null;
+            return DateOnly.TryParseExact(ValueDateRaw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
+                ? d
+                : (DateOnly?)null;
+        }
+    }
+}
