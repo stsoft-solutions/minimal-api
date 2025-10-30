@@ -76,7 +76,7 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 Validator.TryValidateObject(value, objectContext, validationResults, true);
 
                 if (validationResults.Count <= 0) continue;
-                
+
                 errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 foreach (var vr in validationResults)
                 {

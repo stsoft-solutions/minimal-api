@@ -11,7 +11,7 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// </summary>
 public static class GetPayments
 {
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem>> HandleAsync(
+    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
         [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
         int? paymentId,
         [FromQuery(Name = "valueDate")] [Description("Value date")]
@@ -22,7 +22,7 @@ public static class GetPayments
     {
         // Small delay to simulate async operation
         await Task.Delay(50);
-        
+
         // Simulate fetching payments from a data source
         var payments = new List<GetPaymentsItem>();
 

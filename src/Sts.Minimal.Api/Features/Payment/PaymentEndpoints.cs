@@ -47,6 +47,15 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
+        group.MapPost("/", PostPayment.HandleAsync)
+            .WithName("PostPayment")
+            .WithDescription("Processes a new payment.")
+            .Produces<PostPaymentResponse>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .Stable();
+
+
         return group;
     }
 }

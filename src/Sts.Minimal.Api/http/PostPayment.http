@@ -1,0 +1,36 @@
+﻿### Post payment
+POST {{HostAddress}}/payments
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+    "amount": 90,
+    "currency": "USD",
+  "valueDate": "2024-06-30"
+}
+
+> {%
+    client.test("Request executed successfully.", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.body.hasOwnProperty("paymentId"), "Response body has paymentId");
+    });
+%}
+
+
+### Post payment - zero amount
+POST {{HostAddress}}/payments
+Accept: application/json, application/problem+json
+Content-Type: application/json
+
+{
+  "amount": 0,
+  "currency": "USD",
+  "valueDate": "2024-06-30"
+}
+
+> {%
+    client.test("Request executed successfully.", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.body.hasOwnProperty("paymentId"), "Response body has paymentId");
+    });
+%}

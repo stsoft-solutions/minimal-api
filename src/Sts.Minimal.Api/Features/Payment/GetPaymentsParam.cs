@@ -14,11 +14,11 @@ public static class GetPaymentsParam
     /// <param name="request">The object containing query parameters for retrieving payments.</param>
     /// <returns>
     /// A task that represents the asynchronous operation, returning a result with one of the following outcomes:
-    /// - An Ok result containing a collection of <see cref="GetPaymentsItem"/> objects if payments are found.
+    /// - An Ok result containing a collection of <see cref="GetPaymentsItem" /> objects if payments are found.
     /// - A NotFound result if no payments match the criteria.
     /// - A ValidationProblem result if input validation errors occur.
     /// </returns>
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem>> HandleAsync(
+    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
         [AsParameters] GetPaymentsRequest request
     )
     {

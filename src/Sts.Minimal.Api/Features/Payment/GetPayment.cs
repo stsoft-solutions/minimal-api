@@ -32,7 +32,7 @@ public static class GetPayment
     ///     </item>
     /// </list>
     /// </returns>
-    public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem>> HandleAsync(
+    public static async Task<Results<Ok<GetPaymentResponse>, NotFound, ValidationProblem, ProblemHttpResult>> HandleAsync(
         [FromRoute(Name = "paymentId")]
         [Required]
         [Range(1, 1000)]
