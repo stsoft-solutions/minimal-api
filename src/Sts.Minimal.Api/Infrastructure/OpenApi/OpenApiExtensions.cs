@@ -37,6 +37,9 @@ public static class OpenApiExtensions
                 };
                 return Task.CompletedTask;
             });
+
+            // Add IsoDateOnlyTransformer
+            options.AddOperationTransformer<IsoDateOnlyTransformer>();
         });
 
         // Add API explorer for endpoint metadata

@@ -8,6 +8,7 @@ namespace Sts.Minimal.Api.Infrastructure.Validation;
 /// Intended for Minimal API query parameters bound as strings to avoid binder exceptions
 /// when the incoming value isn't a valid date.
 /// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class IsoDateOnlyAttribute : ValidationAttribute
 {
     public IsoDateOnlyAttribute()

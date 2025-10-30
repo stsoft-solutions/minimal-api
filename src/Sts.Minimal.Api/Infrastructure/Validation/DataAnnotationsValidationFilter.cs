@@ -91,9 +91,9 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 
                     var bindingName = !string.IsNullOrWhiteSpace(fromQuery?.Name)
                         ? fromQuery!.Name!
-                        : (prop.Name.Length > 0
+                        : prop.Name.Length > 0
                             ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
-                            : prop.Name);
+                            : prop.Name;
 
                     var propValue = prop.GetValue(obj);
 

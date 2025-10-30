@@ -1,5 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
-using Scalar.AspNetCore;
+﻿using Scalar.AspNetCore;
 using Sts.Minimal.Api.Features.Payment.Model;
 using Sts.Minimal.Api.Infrastructure.Validation;
 

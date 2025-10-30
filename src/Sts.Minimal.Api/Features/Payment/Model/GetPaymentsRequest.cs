@@ -37,9 +37,10 @@ public record GetPaymentsRequest(
         get
         {
             if (string.IsNullOrWhiteSpace(ValueDateRaw)) return null;
-            return DateOnly.TryParseExact(ValueDateRaw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
+            return DateOnly.TryParseExact(ValueDateRaw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None,
+                out var d)
                 ? d
-                : (DateOnly?)null;
+                : null;
         }
     }
 }

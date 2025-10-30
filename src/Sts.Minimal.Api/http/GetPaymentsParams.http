@@ -32,8 +32,12 @@ GET {{HostAddress}}/payments/query-param?value-date=invalid-date
 Accept: application/json, application/problem+json
 
 > {%
-    client.test("Request executed successfully. Invalid date format", function () {
-        client.assert(response.status === 500, "Response status is 500");
+    client.test("Request executed successfully. Invalid date", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors["value-date"][0] === "The value 'invalid-date' is not valid for value-date.", "Error message is correct");
     });
 %}
 
@@ -42,8 +46,11 @@ GET {{HostAddress}}/payments/query-param?value-date=2025-31-31
 Accept: application/json, application/problem+json
 
 > {%
-    client.test("Request executed successfully. Invalid date format", function () {
-        client.assert(response.status === 500, "Response status is 500");
+    client.test("Request executed successfully. Invalid date", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors["value-date"][0] === "The value '2025-31-31' is not valid for value-date.", "Error message is correct");
     });
 %}
-

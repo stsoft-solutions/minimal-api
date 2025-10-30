@@ -1,7 +1,6 @@
 ﻿using Serilog;
 using Serilog.Core;
 using Serilog.Enrichers.Span;
-using Serilog.Context;
 
 namespace Sts.Minimal.Api.Infrastructure.Host;
 
@@ -111,8 +110,8 @@ public static class HostAppExtensionsAndFactory
 
         // Prefer host integration to manage lifetime and disposal
         builder.Host.UseSerilog(logger, true);
-        
-        
+
+
         // Add HTTP logging middleware
         builder.Services.AddHttpLogging();
 
@@ -123,7 +122,7 @@ public static class HostAppExtensionsAndFactory
     {
         // Configure logging middleware
         app.UseHttpLogging();
-        
+
         // Configure request logging middleware
         app.UseSerilogRequestLogging(options =>
         {

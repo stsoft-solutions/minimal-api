@@ -1,9 +1,8 @@
+using Microsoft.AspNetCore.Diagnostics;
+using Serilog.Context;
 using Sts.Minimal.Api.Features.Payment;
 using Sts.Minimal.Api.Infrastructure.Host;
 using Sts.Minimal.Api.Infrastructure.OpenApi;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Serilog.Context;
 
 // Create host builder with Serilog & OTLP
 var builder = HostAppExtensionsAndFactory.CreateStsHostBuilder(args);
@@ -25,10 +24,7 @@ app.Use(async (context, next) =>
 });
 
 // Developer-friendly error page in Development
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
+if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
 // Log and format unhandled exceptions as ProblemDetails
 app.UseExceptionHandler(errorApp =>
@@ -47,15 +43,11 @@ app.UseExceptionHandler(errorApp =>
             .CreateLogger("GlobalExceptionHandler");
 
         if (exception is not null)
-        {
             logger.LogError(exception, "Unhandled exception for {Method} {Path}. TraceId={TraceId}",
                 context.Request.Method, context.Request.Path, context.TraceIdentifier);
-        }
         else
-        {
             logger.LogError("Unhandled error for {Method} {Path}. TraceId={TraceId}",
                 context.Request.Method, context.Request.Path, context.TraceIdentifier);
-        }
 
         var problem = Results.Problem(
             title: "An error occurred while processing your request.",
