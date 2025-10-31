@@ -66,6 +66,19 @@ Accept: application/json, application/problem+json
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.valueDate[0] === "The value '2025-31-31' is not valid for valueDate.", "Error message is correct");
+        client.assert(response.body.errors.status[0] === "The value '2025-31-31' is not valid for valueDate.", "Error message is correct");
+    });
+%}
+
+### Pass special status (FINISHED)
+GET {{HostAddress}}/payments/query?status=FINISHED
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully. Empty list", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
+        client.assert(response.body instanceof Array, "Response body is an array");
+        client.assert(response.body.length === 0, "Response body is empty");
     });
 %}

@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
+using Sts.Minimal.Api.Infrastructure.Serialization;
 using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment;
@@ -19,12 +20,15 @@ public class GetPayments
             [FromQuery(Name = "valueDate")] [Description("Value date")] [IsoDateOnly]
             string? valueDate,
             [FromQuery(Name = "status")] [Description("Payment's status")] [EnumString(typeof(PaymentStatus))]
-            string? status,
+            string? rawStatus,
             [FromServices] ILogger<GetPayments> logger
         )
     {
         // Small delay to simulate async operation
         await Task.Delay(50);
+
+        // Normalize status to enum if provided (supports JsonStringEnumMemberName)
+        var status = EnumParsing.ParseNullable<PaymentStatus>(rawStatus);
 
         logger.LogInformation("Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}", paymentId,
             valueDate, status);
