@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,6 +19,16 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 
     // Precompute validation attributes and member names per parameter to avoid reflection on every request
     private readonly (string MemberName, ValidationAttribute[] Attributes)[] _precomputed;
+
+    // Cache per-type property validation metadata to avoid reflection and slow PropertyInfo.GetValue each request
+    private static readonly ConcurrentDictionary<Type, PropertyValidationMeta[]> PropertyValidationMetasMap = new();
+
+    private sealed class PropertyValidationMeta
+    {
+        public required string BindingName { get; init; }
+        public required Func<object, object?> Getter { get; init; }
+        public required ValidationAttribute[] Attributes { get; init; }
+    }
 
     public DataAnnotationsValidationFilter(ParameterInfo[] parameters)
     {
@@ -46,14 +58,14 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 
             if (validationAttributes.Length > 0)
             {
+                // Reuse a single ValidationContext for the parameter across its attributes
+                var validationContext = new ValidationContext(value ?? new object(), null, null)
+                {
+                    MemberName = memberName
+                };
+
                 foreach (var attr in validationAttributes)
                 {
-                    // Build a validation context to let attributes compute formatted messages
-                    var validationContext = new ValidationContext(value ?? new object(), null, null)
-                    {
-                        MemberName = memberName
-                    };
-
                     var result = attr.GetValidationResult(value, validationContext);
 
                     if (result == ValidationResult.Success) continue;
@@ -72,62 +84,38 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             else if (value is not null)
             {
                 // No parameter-level validation attributes present.
-                // Manually validate complex object properties so we can use binding names (e.g., FromQuery(Name = "payment-id")).
+                // Validate complex object properties using cached metadata.
                 var obj = value;
                 var type = obj.GetType();
-                var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+                var metas = GetOrAddPropertyMetas(type);
 
-                foreach (var prop in props)
+                if (metas.Length > 0)
                 {
-                    var propValidationAttributes = prop
-                        .GetCustomAttributes(typeof(ValidationAttribute), true)
-                        .OfType<ValidationAttribute>()
-                        .ToArray();
-
-                    if (propValidationAttributes.Length == 0) continue;
-
-                    // Determine the external/binding name for the property
-                    // Priority:
-                    // 1) JsonPropertyNameAttribute (for body-bound JSON contracts)
-                    // 2) FromQueryAttribute.Name (for query-bound params)
-                    // 3) camelCase of the CLR property name (fallback)
-                    var jsonProperty = prop.GetCustomAttributes(typeof(JsonPropertyNameAttribute), true)
-                        .OfType<JsonPropertyNameAttribute>()
-                        .FirstOrDefault();
-
-                    var fromQuery = prop.GetCustomAttributes(typeof(FromQueryAttribute), true)
-                        .OfType<FromQueryAttribute>()
-                        .FirstOrDefault();
-
-                    var bindingName = !string.IsNullOrWhiteSpace(jsonProperty?.Name)
-                        ? jsonProperty!.Name!
-                        : !string.IsNullOrWhiteSpace(fromQuery?.Name)
-                            ? fromQuery!.Name!
-                            : prop.Name.Length > 0
-                                ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
-                                : prop.Name;
-
-                    var propValue = prop.GetValue(obj);
-
-                    foreach (var attr in propValidationAttributes)
+                    foreach (var meta in metas)
                     {
+                        var propValue = meta.Getter(obj);
+
+                        // One ValidationContext per property; reuse across its attributes
                         var vc = new ValidationContext(propValue ?? new object(), null, null)
                         {
-                            MemberName = bindingName
+                            MemberName = meta.BindingName
                         };
 
-                        var result = attr.GetValidationResult(propValue, vc);
-                        if (result == ValidationResult.Success) continue;
-
-                        errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-                        if (!errors.TryGetValue(bindingName, out var list))
+                        foreach (var attr in meta.Attributes)
                         {
-                            list = [];
-                            errors[bindingName] = list;
-                        }
+                            var result = attr.GetValidationResult(propValue, vc);
+                            if (result == ValidationResult.Success) continue;
 
-                        var message = result?.ErrorMessage ?? attr.FormatErrorMessage(bindingName);
-                        if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
+                            errors ??= new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                            if (!errors.TryGetValue(meta.BindingName, out var list))
+                            {
+                                list = [];
+                                errors[meta.BindingName] = list;
+                            }
+
+                            var message = result?.ErrorMessage ?? attr.FormatErrorMessage(meta.BindingName);
+                            if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
+                        }
                     }
                 }
             }
@@ -143,5 +131,70 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
             StringComparer.OrdinalIgnoreCase);
 
         return TypedResults.ValidationProblem(dict);
+    }
+
+    private static PropertyValidationMeta[] GetOrAddPropertyMetas(Type type)
+    {
+        return PropertyValidationMetasMap.GetOrAdd(type, static t =>
+        {
+            var props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            if (props.Length == 0) return [];
+
+            var list = new List<PropertyValidationMeta>(props.Length);
+
+            foreach (var prop in props)
+            {
+                var propValidationAttributes = prop
+                    .GetCustomAttributes(typeof(ValidationAttribute), true)
+                    .OfType<ValidationAttribute>()
+                    .ToArray();
+
+                if (propValidationAttributes.Length == 0)
+                {
+                    continue;
+                }
+
+                // Determine the external/binding name for the property
+                // Priority:
+                // 1) JsonPropertyNameAttribute (for body-bound JSON contracts)
+                // 2) FromQueryAttribute.Name (for query-bound params)
+                // 3) camelCase of the CLR property name (fallback)
+                var jsonProperty = prop.GetCustomAttributes(typeof(JsonPropertyNameAttribute), true)
+                    .OfType<JsonPropertyNameAttribute>()
+                    .FirstOrDefault();
+
+                var fromQuery = prop.GetCustomAttributes(typeof(FromQueryAttribute), true)
+                    .OfType<FromQueryAttribute>()
+                    .FirstOrDefault();
+
+                var bindingName = !string.IsNullOrWhiteSpace(jsonProperty?.Name)
+                    ? jsonProperty!.Name!
+                    : !string.IsNullOrWhiteSpace(fromQuery?.Name)
+                        ? fromQuery!.Name!
+                        : prop.Name.Length > 0
+                            ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
+                            : prop.Name;
+
+                list.Add(new PropertyValidationMeta
+                {
+                    BindingName = bindingName,
+                    Getter = CreateFastGetter(prop),
+                    Attributes = propValidationAttributes
+                });
+            }
+
+            return list.Count == 0 ? [] : list.ToArray();
+        });
+    }
+
+    private static Func<object, object?> CreateFastGetter(PropertyInfo prop)
+    {
+        // Build: (object instance) => (object?) ((TDeclaring)instance).Prop
+        var instanceParam = Expression.Parameter(typeof(object), "instance");
+        var castInstance = Expression.Convert(instanceParam, prop.DeclaringType!);
+        var propertyAccess = Expression.Property(castInstance, prop);
+        var castResult = Expression.Convert(propertyAccess, typeof(object));
+        var lambda = Expression.Lambda<Func<object, object?>>(castResult, instanceParam);
+        return lambda.Compile();
     }
 }

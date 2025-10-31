@@ -25,11 +25,11 @@ Content-Type: application/json
 {
   "amount": 0,
   "currency": "USD",
-  "value-date": "2024-06-30"
+  "value-date": "2024-06-35"
 }
 
 > {%
-    client.test("Request executed successfully. Prohibited ID", function () {
+    client.test("Request executed unsuccessfully. Amount is zero", function () {
         client.assert(response.status === 400, "Response status is 400");
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
