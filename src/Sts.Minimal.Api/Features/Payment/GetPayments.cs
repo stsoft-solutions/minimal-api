@@ -28,10 +28,10 @@ public class GetPayments
         await Task.Delay(50);
 
         // Normalize status to enum if provided (supports JsonStringEnumMemberName)
-        var status = EnumParsing.ParseNullable<PaymentStatus>(rawStatus);
+        var parsedStatus = EnumParsing.ParseNullable<PaymentStatus>(rawStatus);
 
         logger.LogInformation("Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}", paymentId,
-            valueDate, status);
+            valueDate, parsedStatus);
 
         // Here you would typically filter payments based on the provided parameters.
         return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());

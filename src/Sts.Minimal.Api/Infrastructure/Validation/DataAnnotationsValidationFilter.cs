@@ -2,7 +2,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,20 +14,12 @@ namespace Sts.Minimal.Api.Infrastructure.Validation;
 /// </summary>
 public sealed class DataAnnotationsValidationFilter : IEndpointFilter
 {
+    // Cache per-type property validation metadata to avoid reflection and slow PropertyInfo.GetValue each request
+    private static readonly ConcurrentDictionary<Type, PropertyValidationMeta[]> PropertyValidationMetasMap = new();
     private readonly ParameterInfo[] _parameters;
 
     // Precompute validation attributes and member names per parameter to avoid reflection on every request
     private readonly (string MemberName, ValidationAttribute[] Attributes)[] _precomputed;
-
-    // Cache per-type property validation metadata to avoid reflection and slow PropertyInfo.GetValue each request
-    private static readonly ConcurrentDictionary<Type, PropertyValidationMeta[]> PropertyValidationMetasMap = new();
-
-    private sealed class PropertyValidationMeta
-    {
-        public required string BindingName { get; init; }
-        public required Func<object, object?> Getter { get; init; }
-        public required ValidationAttribute[] Attributes { get; init; }
-    }
 
     public DataAnnotationsValidationFilter(ParameterInfo[] parameters)
     {
@@ -41,7 +32,16 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 .GetCustomAttributes(typeof(ValidationAttribute), true)
                 .OfType<ValidationAttribute>()
                 .ToArray();
-            var memberName = p.Name ?? $"arg{i}";
+
+            // Use external binding name when available to ensure ProblemDetails keys reflect query/body names
+            var fromQuery = p
+                .GetCustomAttributes(typeof(FromQueryAttribute), true)
+                .OfType<FromQueryAttribute>()
+                .FirstOrDefault();
+
+            var memberName = !string.IsNullOrWhiteSpace(fromQuery?.Name)
+                ? fromQuery!.Name!
+                : p.Name ?? $"arg{i}";
             _precomputed[i] = (memberName, attrs);
         }
     }
@@ -90,7 +90,6 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                 var metas = GetOrAddPropertyMetas(type);
 
                 if (metas.Length > 0)
-                {
                     foreach (var meta in metas)
                     {
                         var propValue = meta.Getter(obj);
@@ -117,7 +116,6 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                             if (!string.IsNullOrWhiteSpace(message)) list.Add(message);
                         }
                     }
-                }
             }
         }
 
@@ -149,10 +147,7 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                     .OfType<ValidationAttribute>()
                     .ToArray();
 
-                if (propValidationAttributes.Length == 0)
-                {
-                    continue;
-                }
+                if (propValidationAttributes.Length == 0) continue;
 
                 // Determine the external/binding name for the property
                 // Priority:
@@ -196,5 +191,12 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
         var castResult = Expression.Convert(propertyAccess, typeof(object));
         var lambda = Expression.Lambda<Func<object, object?>>(castResult, instanceParam);
         return lambda.Compile();
+    }
+
+    private sealed class PropertyValidationMeta
+    {
+        public required string BindingName { get; init; }
+        public required Func<object, object?> Getter { get; init; }
+        public required ValidationAttribute[] Attributes { get; init; }
     }
 }
