@@ -75,8 +75,7 @@ public static class OpenApiExtensions
         {
             options.EnabledClients =
             [
-                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient,
-                ScalarClient.Axios
+                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient
             ];
             options.EnabledTargets =
             [
@@ -87,7 +86,6 @@ public static class OpenApiExtensions
                 PreferredSecuritySchemes = [JwtBearerDefaults.AuthenticationScheme]
             };
         });
-
 
         return app;
     }
