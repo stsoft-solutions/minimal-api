@@ -26,7 +26,6 @@ public class PostPaymentRequest
     /// </value>
     [JsonPropertyName("amount")]
     [Required]
-    // [Range(0.1, 100.00, ErrorMessage = "Price must be between 0.01 and 100.00")] - we have a bug for values less when 1
     [Range(1, 100.00, ErrorMessage = "Price must be between 1 and 100.00")]
     [Description("The amount of the payment in the specified currency.")]
     public decimal? Amount { get; set; }
