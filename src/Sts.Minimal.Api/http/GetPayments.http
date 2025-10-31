@@ -56,7 +56,7 @@ Accept: application/json, application/problem+json
 %}
 
 
-### Pass invalid valueDate (wrong status)
+### Pass invalid status (wrong status)
 GET {{HostAddress}}/payments/query?status=wrong
 Accept: application/json, application/problem+json
 

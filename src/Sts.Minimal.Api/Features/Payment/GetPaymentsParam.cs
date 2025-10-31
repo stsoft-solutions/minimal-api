@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
 
 namespace Sts.Minimal.Api.Features.Payment;
@@ -6,7 +7,7 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// <summary>
 /// Provides a static method for handling a query to retrieve payments using a query parameter object.
 /// </summary>
-public static class GetPaymentsParam
+public class GetPaymentsParam
 {
     /// <summary>
     /// Handles asynchronous processing of the payment query using the specified request parameters.
@@ -20,11 +21,12 @@ public static class GetPaymentsParam
     /// </returns>
     public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>
         HandleAsync(
-            [AsParameters] GetPaymentsRequest request
+            [AsParameters] GetPaymentsRequest request,
+            [FromServices] ILogger<GetPaymentsParam> logger
         )
     {
-        var payments = new List<GetPaymentsItem>();
+        logger.LogInformation("Get Payments request {@Request}", request);
 
-        return TypedResults.Ok(payments.AsEnumerable());
+        return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());
     }
 }

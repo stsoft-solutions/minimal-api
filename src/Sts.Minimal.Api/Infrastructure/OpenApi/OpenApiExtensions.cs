@@ -40,6 +40,9 @@ public static class OpenApiExtensions
 
             // Add IsoDateOnlyTransformer
             options.AddOperationTransformer<IsoDateOnlyTransformer>();
+
+            // Add EnumStringTransformer to expose enum choices for string-bound enums
+            options.AddOperationTransformer<EnumStringTransformer>();
         });
 
         // Add API explorer for endpoint metadata
