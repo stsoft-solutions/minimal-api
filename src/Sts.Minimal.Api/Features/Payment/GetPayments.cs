@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
+using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
@@ -15,8 +16,8 @@ public static class GetPayments
         HandleAsync(
             [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
             int? paymentId,
-            [FromQuery(Name = "valueDate")] [Description("Value date")]
-            DateOnly? valueDate,
+            [FromQuery(Name = "valueDate")] [Description("Value date")] [IsoDateOnly]
+            string? valueDate,
             [FromQuery(Name = "status")] [Description("Payment's status")]
             PaymentStatus? status
         )
