@@ -21,6 +21,8 @@ public class GetPayments
             string? valueDate,
             [FromQuery(Name = "status")] [Description("Payment's status")] [EnumString(typeof(PaymentStatus))]
             string? rawStatus,
+            [FromQuery(Name = "referenceId")] [Description("Reference ID")]
+            Guid? referenceId,
             [FromServices] ILogger<GetPayments> logger
         )
     {
@@ -30,8 +32,9 @@ public class GetPayments
         // Normalize status to enum if provided (supports JsonStringEnumMemberName)
         var parsedStatus = EnumParsing.ParseNullable<PaymentStatus>(rawStatus);
 
-        logger.LogInformation("Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}", paymentId,
-            valueDate, parsedStatus);
+        logger.LogInformation(
+            "Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}, ReferenceId: {ReferenceId}",
+            paymentId, valueDate, parsedStatus, referenceId);
 
         // Here you would typically filter payments based on the provided parameters.
         return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());

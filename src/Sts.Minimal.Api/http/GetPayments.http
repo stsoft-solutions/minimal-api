@@ -1,6 +1,6 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query
-Accept: application/json, application/problem+json
+Accept: application/problem+json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -14,7 +14,7 @@ Accept: application/json, application/problem+json
 
 ### Pass invalid payment ID
 GET {{HostAddress}}/payments/query?paymentId=5000
-Accept: application/json, application/problem+json
+Accept: application/problem+json
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -58,7 +58,7 @@ Accept: application/json, application/problem+json
 
 ### Pass invalid status (wrong status)
 GET {{HostAddress}}/payments/query?status=wrong
-Accept: application/json, application/problem+json
+Accept: application/problem+json
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -72,7 +72,7 @@ Accept: application/json, application/problem+json
 
 ### Pass special status (FINISHED)
 GET {{HostAddress}}/payments/query?status=FINISHED
-Accept: application/json, application/problem+json
+Accept: application/json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -80,5 +80,32 @@ Accept: application/json, application/problem+json
         client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
         client.assert(response.body instanceof Array, "Response body is an array");
         client.assert(response.body.length === 0, "Response body is empty");
+    });
+%}
+
+### Pass reference ID
+GET {{HostAddress}}/payments/query?referenceId={{$random.uuid}}
+Accept: application/json
+
+> {%
+    client.test("Request executed successfully. Empty list", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
+        client.assert(response.body instanceof Array, "Response body is an array");
+        client.assert(response.body.length === 0, "Response body is empty");
+    });
+%}
+
+### Pass wrong reference ID
+GET {{HostAddress}}/payments/query?referenceId=wrong-format-id
+Accept: application/json
+
+> {%
+    client.test("Request has validation error. Wrong GUID", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.status[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
     });
 %}

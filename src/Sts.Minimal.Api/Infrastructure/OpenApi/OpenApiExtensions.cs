@@ -1,7 +1,13 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 
@@ -50,6 +56,7 @@ public static class OpenApiExtensions
 
         // Add Problem Details middleware for standardized error responses
         services.AddProblemDetails();
+        services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
 
         return services;
     }
@@ -62,13 +69,31 @@ public static class OpenApiExtensions
     /// <returns>The WebApplication instance with OpenAPI middleware configured.</returns>
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
+
+        // --- 1 Pre-handler middleware: intercept binder errors early ---
+        app.Use(async (context, next) =>
+        {
+            try
+            {
+                await next();
+            }
+            catch (BadHttpRequestException ex) when (ex.Message.StartsWith("Failed to bind parameter"))
+            {
+                // Reuse your existing IExceptionHandler
+                var handler = context.RequestServices.GetRequiredService<BadHttpRequestToValidationHandler>();
+                await handler.TryHandleAsync(context, ex, context.RequestAborted);
+
+                // DO NOT rethrow — this prevents the framework from logging the “unhandled exception”
+            }
+        });
+        
+        // --- 2 Then the framework-wide exception handler for all other exceptions ---
+        app.UseExceptionHandler(); // handles everything else (NullReferenceException, etc.)
+
         // http://localhost:5239/openapi/v1.json
         app.Logger.LogInformation("Configuring OpenAPI at http://localhost:5239/openapi/v1.json");
         app.MapOpenApi();
-
-        // Use Exception Handler Middleware
-        app.UseExceptionHandler();
-
+        
         // http://localhost:5239/scalar
         app.Logger.LogInformation("Configuring Scalar API Reference at http://localhost:5239/scalar");
         app.MapScalarApiReference(options =>
@@ -88,5 +113,58 @@ public static class OpenApiExtensions
         });
 
         return app;
+    }
+
+    private static string FriendlyError(string? typeHint, string? sourceValue)
+    {
+        if (typeHint is null) return "Invalid value.";
+
+        // Compare on normalized underlying type
+        var t = typeHint.ToLowerInvariant();
+
+        if (t.Contains("guid")) return "Invalid format. Must be a valid GUID.";
+        if (t.Contains("int") || t.Contains("int32") || t.Contains("int64")) return "Invalid number. Must be an integer.";
+        if (t.Contains("decimal") || t.Contains("double") || t.Contains("single") || t.Contains("float")) return "Invalid number.";
+        if (t.Contains("dateonly")) return "Invalid date. Use yyyy-MM-dd.";
+        if (t.Contains("datetime") || t.Contains("datetimeoffset")) return "Invalid date/time.";
+        if (t.Contains("bool") || t.Contains("boolean")) return "Invalid boolean. Use true or false.";
+
+        // Likely enum or custom type
+        return "Invalid value.";
+    }
+
+    private static class BinderMessageParser
+    {
+        // Matches:
+        //  "Nullable<Guid> referenceId" from "wrong-format-id"
+        //  "Guid referenceId" from "..."
+        //  "Int32 paymentId" from "abc"
+        //  "PaymentStatus status" from "zzz"
+        //  "Nullable`1[DateOnly] valueDate" from "x"
+        private static readonly Regex Rx = new(
+            "Failed to bind parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+from\\s+\"(?<value>.*?)\"",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        public static (string? name, string? value, string? typeHint) Parse(string message)
+        {
+            var m = Rx.Match(message);
+            if (!m.Success) return (null, null, null);
+            return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value);
+        }
+
+        public static string? UnwrapNullable(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return raw;
+
+            // Handle Nullable<T>
+            var angle = Regex.Match(raw, "^Nullable<(?<inner>[^>]+)>$", RegexOptions.CultureInvariant);
+            if (angle.Success) return angle.Groups["inner"].Value;
+
+            // Handle Nullable`1[Inner]
+            var backtick = Regex.Match(raw, "^Nullable`\\d+\\[(?<inner>[^\\]]+)\\]$", RegexOptions.CultureInvariant);
+            if (backtick.Success) return backtick.Groups["inner"].Value;
+
+            return raw; // already a simple type
+        }
     }
 }
