@@ -4,13 +4,16 @@ using Sts.Minimal.Api.Features.Payment.Model;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
-public static class PostPayment
+public class PostPayment
 {
     public static async Task<Results<Ok<PostPaymentResponse>, ValidationProblem, ProblemHttpResult>> HandleAsync(
-        [FromBody] PostPaymentRequest request
+        [FromBody] PostPaymentRequest request, ILogger<PostPayment> logger
     )
     {
         await Task.Delay(50);
+        
+        logger.LogInformation("Posting payment: {@Payment}", request);
+        
         return TypedResults.Ok(new PostPaymentResponse(Guid.NewGuid()));
     }
 }

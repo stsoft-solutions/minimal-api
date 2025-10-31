@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text.Json.Serialization;
+using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment.Model;
 
@@ -11,7 +13,7 @@ namespace Sts.Minimal.Api.Features.Payment.Model;
 /// The properties of this class are validated using data annotations to ensure that the request contains valid data.
 /// The properties must be nullable to allow the validation framework to check for required fields.
 /// </remarks>
-public class PostPaymentRequest
+public record PostPaymentRequest
 {
     /// <summary>
     /// Gets or sets the amount of the payment in the specified currency.
@@ -61,5 +63,38 @@ public class PostPaymentRequest
     [JsonPropertyName("value-date")]
     [Required]
     [Description("The value date of the payment.")]
-    public DateOnly? ValueDate { get; set; }
+    [IsoDateOnly]
+    public string? RawValueDate
+    {
+        get;
+        set
+        {
+            // Custom setter to parse and set ValueDate when RawValueDate is assigned
+
+            field = value;
+            
+            if (value != null)
+            {
+                ValueDate = DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate) ? parsedDate : null;
+            }
+            else
+            {
+                ValueDate = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the value date of the payment in ISO 8601 "yyyy-MM-dd" format.
+    /// </summary>
+    /// <remarks>
+    /// This property derives the value date from the raw string representation (RawValueDate). It attempts to parse the input
+    /// using the exact date format "yyyy-MM-dd". If parsing succeeds, the property returns the parsed DateOnly object; otherwise, null is returned.
+    /// The RawValueDate property must comply with the ISO 8601 "yyyy-MM-dd" format and is validated using a custom data annotation ([IsoDateOnly]) to ensure correctness.
+    /// Use [Required] validation on RawValueDate to make this property mandatory.
+    /// </remarks>
+    /// <value>
+    /// A nullable <see cref="DateOnly"/> representing the parsed value date of the payment.
+    /// </value>
+    public DateOnly? ValueDate { get; private set; }
 }
