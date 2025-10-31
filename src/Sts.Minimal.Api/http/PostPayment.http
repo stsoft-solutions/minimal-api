@@ -6,7 +6,7 @@ Content-Type: application/json
 {
   "amount": 90,
   "currency": "USD",
-  "valueDate": "2024-06-30"
+  "value-date": "2024-06-30"
 }
 
 > {%
@@ -25,12 +25,15 @@ Content-Type: application/json
 {
   "amount": 0,
   "currency": "USD",
-  "valueDate": "2024-06-30"
+  "value-date": "2024-06-30"
 }
 
 > {%
-    client.test("Request executed successfully.", function () {
-        client.assert(response.status === 400, "Response status is 200");
-        client.assert(response.body.hasOwnProperty("paymentId"), "Response body has paymentId");
+    client.test("Request executed successfully. Prohibited ID", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.amount[0] === "The value must be between 1 and 100.00", "Error message is correct");
     });
 %}

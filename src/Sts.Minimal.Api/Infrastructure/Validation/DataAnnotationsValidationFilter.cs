@@ -87,15 +87,25 @@ public sealed class DataAnnotationsValidationFilter : IEndpointFilter
                     if (propValidationAttributes.Length == 0) continue;
 
                     // Determine the external/binding name for the property
+                    // Priority:
+                    // 1) JsonPropertyNameAttribute (for body-bound JSON contracts)
+                    // 2) FromQueryAttribute.Name (for query-bound params)
+                    // 3) camelCase of the CLR property name (fallback)
+                    var jsonProperty = prop.GetCustomAttributes(typeof(JsonPropertyNameAttribute), true)
+                        .OfType<JsonPropertyNameAttribute>()
+                        .FirstOrDefault();
+
                     var fromQuery = prop.GetCustomAttributes(typeof(FromQueryAttribute), true)
                         .OfType<FromQueryAttribute>()
                         .FirstOrDefault();
 
-                    var bindingName = !string.IsNullOrWhiteSpace(fromQuery?.Name)
-                        ? fromQuery!.Name!
-                        : prop.Name.Length > 0
-                            ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
-                            : prop.Name;
+                    var bindingName = !string.IsNullOrWhiteSpace(jsonProperty?.Name)
+                        ? jsonProperty!.Name!
+                        : !string.IsNullOrWhiteSpace(fromQuery?.Name)
+                            ? fromQuery!.Name!
+                            : prop.Name.Length > 0
+                                ? char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]
+                                : prop.Name;
 
                     var propValue = prop.GetValue(obj);
 
