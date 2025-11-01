@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
 using Sts.Minimal.Api.Infrastructure.Serialization;
-using Sts.Minimal.Api.Infrastructure.Validation;
+using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Features.Payment;
 

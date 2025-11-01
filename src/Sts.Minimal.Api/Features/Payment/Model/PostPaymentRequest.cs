@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json.Serialization;
-using Sts.Minimal.Api.Infrastructure.Validation;
+using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Features.Payment.Model;
 
@@ -72,15 +72,14 @@ public record PostPaymentRequest
             // Custom setter to parse and set ValueDate when RawValueDate is assigned
 
             field = value;
-            
+
             if (value != null)
-            {
-                ValueDate = DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate) ? parsedDate : null;
-            }
+                ValueDate = DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var parsedDate)
+                    ? parsedDate
+                    : null;
             else
-            {
                 ValueDate = null;
-            }
         }
     }
 
@@ -89,12 +88,14 @@ public record PostPaymentRequest
     /// </summary>
     /// <remarks>
     /// This property derives the value date from the raw string representation (RawValueDate). It attempts to parse the input
-    /// using the exact date format "yyyy-MM-dd". If parsing succeeds, the property returns the parsed DateOnly object; otherwise, null is returned.
-    /// The RawValueDate property must comply with the ISO 8601 "yyyy-MM-dd" format and is validated using a custom data annotation ([IsoDateOnly]) to ensure correctness.
+    /// using the exact date format "yyyy-MM-dd". If parsing succeeds, the property returns the parsed DateOnly object;
+    /// otherwise, null is returned.
+    /// The RawValueDate property must comply with the ISO 8601 "yyyy-MM-dd" format and is validated using a custom data
+    /// annotation ([IsoDateOnly]) to ensure correctness.
     /// Use [Required] validation on RawValueDate to make this property mandatory.
     /// </remarks>
     /// <value>
-    /// A nullable <see cref="DateOnly"/> representing the parsed value date of the payment.
+    /// A nullable <see cref="DateOnly" /> representing the parsed value date of the payment.
     /// </value>
     public DateOnly? ValueDate { get; private set; }
 }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
-using Sts.Minimal.Api.Infrastructure.Validation;
+using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Features.Payment.Model;
 

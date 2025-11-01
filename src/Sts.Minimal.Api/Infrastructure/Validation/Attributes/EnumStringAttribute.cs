@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 
-namespace Sts.Minimal.Api.Infrastructure.Validation;
+namespace Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 /// <summary>
 /// Validates that a string (typically a Minimal API query parameter) is either empty/null
@@ -57,10 +57,7 @@ public sealed class EnumStringAttribute : ValidationAttribute
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Add enum names
-        foreach (var name in Enum.GetNames(enumType))
-        {
-            set.Add(name);
-        }
+        foreach (var name in Enum.GetNames(enumType)) set.Add(name);
 
         // Add JsonStringEnumMemberName values when present
         var fields = enumType.GetFields(BindingFlags.Public | BindingFlags.Static);

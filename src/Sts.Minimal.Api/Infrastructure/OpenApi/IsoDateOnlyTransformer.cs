@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using Sts.Minimal.Api.Infrastructure.Validation;
+using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 

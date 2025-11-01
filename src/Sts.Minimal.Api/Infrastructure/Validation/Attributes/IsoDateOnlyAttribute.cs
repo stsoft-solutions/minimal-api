@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 
-namespace Sts.Minimal.Api.Infrastructure.Validation;
+namespace Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 /// <summary>
 /// Validates that the value is either null/empty or a valid ISO date in yyyy-MM-dd format.

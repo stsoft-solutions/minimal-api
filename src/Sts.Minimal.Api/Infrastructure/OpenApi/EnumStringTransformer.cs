@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using Sts.Minimal.Api.Infrastructure.Validation;
+using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 
@@ -15,7 +15,8 @@ namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 public sealed class EnumStringTransformer : IOpenApiOperationTransformer
 {
     /// <summary>
-    /// Transforms the OpenAPI operation by adding enum values to parameters annotated with the <see cref="EnumStringAttribute" />.
+    /// Transforms the OpenAPI operation by adding enum values to parameters annotated with the
+    /// <see cref="EnumStringAttribute" />.
     /// This enhancement modifies the schema of parameters to include allowed string enum values in OpenAPI documentation.
     /// </summary>
     /// <param name="op">The OpenAPI operation to be transformed.</param>
@@ -31,7 +32,8 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
             if (enumAttr is null) continue;
 
             // Find OpenAPI parameter by name
-            var oap = op.Parameters?.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
+            var oap = op.Parameters?.FirstOrDefault(p =>
+                string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
             if (oap is null) continue;
 
             oap.Schema ??= new OpenApiSchema();
@@ -46,7 +48,8 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
             oap.Extensions["x-enum-source"] = new OpenApiString(enumAttr.EnumType.FullName ?? enumAttr.EnumType.Name);
 
             // If no description is set, hint that case-insensitive values are accepted
-            if (string.IsNullOrWhiteSpace(oap.Description)) oap.Description = $"Payment's status (one of: {string.Join(", ", values)}).";
+            if (string.IsNullOrWhiteSpace(oap.Description))
+                oap.Description = $"Payment's status (one of: {string.Join(", ", values)}).";
         }
 
         return Task.CompletedTask;
@@ -81,7 +84,8 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
         foreach (var f in fields)
         {
             var jsonNameAttr = f.GetCustomAttribute<JsonStringEnumMemberNameAttribute>();
-            if (jsonNameAttr?.Name is { Length: > 0 } custom && !list.Contains(custom, StringComparer.OrdinalIgnoreCase)) list.Add(custom);
+            if (jsonNameAttr?.Name is { Length: > 0 } custom &&
+                !list.Contains(custom, StringComparer.OrdinalIgnoreCase)) list.Add(custom);
         }
 
         return list;
