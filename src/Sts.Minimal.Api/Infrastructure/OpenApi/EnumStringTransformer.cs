@@ -14,6 +14,14 @@ namespace Sts.Minimal.Api.Infrastructure.OpenApi;
 /// </summary>
 public sealed class EnumStringTransformer : IOpenApiOperationTransformer
 {
+    /// <summary>
+    /// Transforms the OpenAPI operation by adding enum values to parameters annotated with the <see cref="EnumStringAttribute" />.
+    /// This enhancement modifies the schema of parameters to include allowed string enum values in OpenAPI documentation.
+    /// </summary>
+    /// <param name="op">The OpenAPI operation to be transformed.</param>
+    /// <param name="ctx">The context describing the API operation and its parameters.</param>
+    /// <param name="_">The cancellation token that can be observed for task cancellation.</param>
+    /// <returns>A task that represents the asynchronous transformation operation.</returns>
     public Task TransformAsync(OpenApiOperation op, OpenApiOperationTransformerContext ctx, CancellationToken _)
     {
         foreach (var pd in ctx.Description.ParameterDescriptions)
@@ -44,6 +52,12 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Attempts to retrieve the reflection metadata for a parameter described in the API parameter description.
+    /// This metadata can be used to inspect attributes such as <see cref="EnumStringAttribute" />.
+    /// </summary>
+    /// <param name="pd">The API parameter description from the context of an operation.</param>
+    /// <returns>The parameter metadata as <see cref="ParameterInfo" />, or null if it cannot be retrieved.</returns>
     private static ParameterInfo? TryGetParameterInfo(ApiParameterDescription pd)
     {
         var desc = pd.ParameterDescriptor;
@@ -51,6 +65,12 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
         return prop?.GetValue(desc) as ParameterInfo;
     }
 
+    /// <summary>
+    /// Builds a list of allowed values for an enumeration type by extracting its standard names and any custom names
+    /// defined using <see cref="JsonStringEnumMemberNameAttribute" />.
+    /// </summary>
+    /// <param name="enumType">The enum type from which to extract the allowed values.</param>
+    /// <returns>A list of allowed string values representing the enum's standard and custom names.</returns>
     private static List<string> BuildAllowedValues(Type enumType)
     {
         // Add enum names
