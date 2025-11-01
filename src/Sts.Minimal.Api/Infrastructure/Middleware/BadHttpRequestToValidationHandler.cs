@@ -16,7 +16,7 @@ namespace Sts.Minimal.Api.Infrastructure.Middleware;
 /// response, providing meaningful feedback about invalid parameters.
 /// </remarks>
 /// <seealso cref="IExceptionHandler"/>
-public sealed class BadHttpRequestToValidationHandler : IExceptionHandler
+public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandler
 {
     /// <summary>
     /// Attempts to handle a <see cref="BadHttpRequestException"/> by generating a validation error response.
@@ -77,7 +77,7 @@ public sealed class BadHttpRequestToValidationHandler : IExceptionHandler
     /// and the expected type. Additionally, it includes methods to process and unwrap
     /// nullable type hints, allowing for better error handling during validation.
     /// </remarks>
-    private static class BinderMessageParser
+    private static partial class BinderMessageParser
     {
         // Regex pattern for parsing messages generated during model binding failures.
         // Example: "Failed to bind parameter 'value' from '123'."
@@ -115,11 +115,16 @@ public sealed class BadHttpRequestToValidationHandler : IExceptionHandler
         public static string? UnwrapNullable(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return raw;
-            var a = Regex.Match(raw, "^Nullable<(?<inner>[^>]+)>$");
+            var a = NullableRegex1().Match(raw);
             if (a.Success) return a.Groups["inner"].Value;
-            var b = Regex.Match(raw, "^Nullable`\\d+\\[(?<inner>[^\\]]+)\\]$");
+            var b = NullableRegex2().Match(raw);
             if (b.Success) return b.Groups["inner"].Value;
             return raw;
         }
+
+        [GeneratedRegex("^Nullable<(?<inner>[^>]+)>$")]
+        private static partial Regex NullableRegex1();
+        [GeneratedRegex("^Nullable`\\d+\\[(?<inner>[^\\]]+)\\]$")]
+        private static partial Regex NullableRegex2();
     }
 }

@@ -19,9 +19,9 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 
 - Minimal API endpoints grouped by feature (`/payments`)
 - Request validation via data annotations and custom endpoint filters
-- Consistent problem details for errors
-- OpenAPI 3.0 specification with Scalar API Reference UI
-- Structured request/response logging via Serilog
+- Consistent problem+json errors, including friendly parameter binding errors (400) for invalid query/path values
+- OpenAPI 3.0 with Scalar API Reference UI (enum choices and ISO `dateOnly` formats)
+- Structured logging via Serilog with per-request `TraceId` enrichment
 - Ready‑to‑use HTTP request samples (JetBrains HTTP Client / VS Code REST Client)
 
 ---
@@ -94,6 +94,9 @@ curl -s "http://localhost:5239/payments/1" | jq .
 
 # Query endpoint
 curl -s "http://localhost:5239/payments/query?paymentId=10&valueDate=2025-01-01&status=Completed&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a"
+
+# Binding error example for query GUID (expected 400 with problem+json)
+curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" -H "Accept: application/json, application/problem+json"
 ```
 
 ---
@@ -111,6 +114,31 @@ Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.
 
 - Map OpenAPI: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
+
+---
+
+## Error handling & validation
+
+- Data annotations and custom endpoint filter `AddDataAnnotationsValidation()` provide model/request validation for bodies and parameter objects.
+- Friendly binding errors for query/path parameters: when ASP.NET Core fails to bind a value (e.g., `paymentId=abc`, `referenceId=xyz`, `valueDate=2024-06-35`), the custom exception handler `BadHttpRequestToValidationHandler` converts the `BadHttpRequestException` into a `400` response with `application/problem+json` using `ValidationProblemDetails`.
+  - Registration: see `Infrastructure/OpenApi/OpenApiExtensions.cs` → `services.AddExceptionHandler<BadHttpRequestToValidationHandler>();` and `app.UseExceptionHandler();`
+  - Example payload:
+
+```json
+{
+  "title": "One or more parameters are invalid.",
+  "status": 400,
+  "errors": {
+    "paymentId": ["Invalid number. Must be an integer."]
+  }
+}
+```
+
+Common messages include:
+- Integers: "Invalid number. Must be an integer."
+- GUIDs: "Invalid format. Must be a valid GUID."
+- Dates: "Invalid date. Use yyyy-MM-dd."
+- Booleans: "Invalid boolean. Use true or false."
 
 ---
 

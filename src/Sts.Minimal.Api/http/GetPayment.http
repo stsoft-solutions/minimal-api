@@ -25,7 +25,7 @@ Accept: application/json, application/problem+json
 
 ### Get existing payment by ID
 GET {{HostAddress}}/payments/1
-Accept: application/json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Payment found", function () {
@@ -38,7 +38,7 @@ Accept: application/json
 
 ### Get payment with out of range ID
 GET {{HostAddress}}/payments/5000
-Accept: application/json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {

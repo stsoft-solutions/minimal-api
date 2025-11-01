@@ -1,6 +1,6 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query
-Accept: application/json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -14,7 +14,7 @@ Accept: application/json
 
 ### Pass invalid payment ID
 GET {{HostAddress}}/payments/query?paymentId=5000
-Accept: application/problem+json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -58,7 +58,7 @@ Accept: application/json, application/problem+json
 
 ### Pass invalid status (wrong status)
 GET {{HostAddress}}/payments/query?status=wrong
-Accept: application/problem+json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Wrong status", function () {
@@ -72,7 +72,7 @@ Accept: application/problem+json
 
 ### Pass special status (FINISHED)
 GET {{HostAddress}}/payments/query?status=FINISHED
-Accept: application/json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -85,7 +85,7 @@ Accept: application/json
 
 ### Pass reference ID
 GET {{HostAddress}}/payments/query?referenceId={{$random.uuid}}
-Accept: application/json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -98,7 +98,7 @@ Accept: application/json
 
 ### Pass wrong reference ID
 GET {{HostAddress}}/payments/query?referenceId=wrong-format-id
-Accept: application/problem+json
+Accept: application/json, application/problem+json
 
 > {%
     client.test("Request has validation error. Wrong GUID", function () {
