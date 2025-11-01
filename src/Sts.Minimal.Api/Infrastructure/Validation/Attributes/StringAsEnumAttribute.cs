@@ -11,11 +11,11 @@ namespace Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 /// and allows returning standard validation problem details (400).
 /// </summary>
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property)]
-public sealed class EnumStringAttribute : ValidationAttribute
+public sealed class StringAsEnumAttribute : ValidationAttribute
 {
     private readonly HashSet<string> _allowedValues;
 
-    public EnumStringAttribute(Type enumType)
+    public StringAsEnumAttribute(Type enumType)
     {
         if (enumType is null) throw new ArgumentNullException(nameof(enumType));
         if (!enumType.IsEnum) throw new ArgumentException("Type must be an enum", nameof(enumType));

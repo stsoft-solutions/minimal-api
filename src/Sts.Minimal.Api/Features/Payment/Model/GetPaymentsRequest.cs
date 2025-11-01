@@ -22,7 +22,7 @@ public record GetPaymentsRequest(
     int? PaymentId,
     [property: Description("Value date")]
     [property: FromQuery(Name = "value-date")]
-    [property: IsoDateOnly]
+    [property: StringAsIsoDate]
     string? ValueDateRaw,
     [property: Description("Payment status")]
     [property: FromQuery(Name = "status")]

@@ -17,9 +17,9 @@ public class GetPayments
         HandleAsync(
             [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
             int? paymentId,
-            [FromQuery(Name = "valueDate")] [Description("Value date")] [IsoDateOnly]
+            [FromQuery(Name = "valueDate")] [Description("Value date")] [StringAsIsoDate]
             string? valueDate,
-            [FromQuery(Name = "status")] [Description("Payment's status")] [EnumString(typeof(PaymentStatus))]
+            [FromQuery(Name = "status")] [Description("Payment's status")] [StringAsEnum(typeof(PaymentStatus))]
             string? rawStatus,
             [FromQuery(Name = "referenceId")] [Description("Reference ID")]
             Guid? referenceId,

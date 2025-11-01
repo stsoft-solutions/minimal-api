@@ -6,17 +6,17 @@ using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
-namespace Sts.Minimal.Api.Infrastructure.OpenApi;
+namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
 /// <summary>
-/// Adds enum values to OpenAPI for string parameters annotated with <see cref="EnumStringAttribute" />.
+/// Adds enum values to OpenAPI for string parameters annotated with <see cref="StringAsEnumAttribute" />.
 /// This preserves runtime binding as string while surfacing allowed values in the schema.
 /// </summary>
 public sealed class EnumStringTransformer : IOpenApiOperationTransformer
 {
     /// <summary>
     /// Transforms the OpenAPI operation by adding enum values to parameters annotated with the
-    /// <see cref="EnumStringAttribute" />.
+    /// <see cref="StringAsEnumAttribute" />.
     /// This enhancement modifies the schema of parameters to include allowed string enum values in OpenAPI documentation.
     /// </summary>
     /// <param name="op">The OpenAPI operation to be transformed.</param>
@@ -28,7 +28,7 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
         foreach (var pd in ctx.Description.ParameterDescriptions)
         {
             var pi = TryGetParameterInfo(pd);
-            var enumAttr = pi?.GetCustomAttribute<EnumStringAttribute>();
+            var enumAttr = pi?.GetCustomAttribute<StringAsEnumAttribute>();
             if (enumAttr is null) continue;
 
             // Find OpenAPI parameter by name
@@ -57,7 +57,7 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
 
     /// <summary>
     /// Attempts to retrieve the reflection metadata for a parameter described in the API parameter description.
-    /// This metadata can be used to inspect attributes such as <see cref="EnumStringAttribute" />.
+    /// This metadata can be used to inspect attributes such as <see cref="StringAsEnumAttribute" />.
     /// </summary>
     /// <param name="pd">The API parameter description from the context of an operation.</param>
     /// <returns>The parameter metadata as <see cref="ParameterInfo" />, or null if it cannot be retrieved.</returns>

@@ -63,7 +63,7 @@ public record PostPaymentRequest
     [JsonPropertyName("value-date")]
     [Required]
     [Description("The value date of the payment.")]
-    [IsoDateOnly]
+    [StringAsIsoDate]
     public string? RawValueDate
     {
         get;

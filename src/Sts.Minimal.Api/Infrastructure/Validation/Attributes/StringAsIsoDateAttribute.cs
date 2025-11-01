@@ -9,9 +9,9 @@ namespace Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 /// when the incoming value isn't a valid date.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class IsoDateOnlyAttribute : ValidationAttribute
+public sealed class StringAsIsoDateAttribute : ValidationAttribute
 {
-    public IsoDateOnlyAttribute()
+    public StringAsIsoDateAttribute()
     {
         // The default message follows MVC-style wording used by built-in model binding errors
         // Example: The value '2025-31-31' is not valid for valueDate.

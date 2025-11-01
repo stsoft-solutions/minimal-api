@@ -27,21 +27,26 @@ public sealed class BadHttpRequestToValidationHandler : IExceptionHandler
     /// <returns>A <see cref="ValueTask{Boolean}"/> indicating whether the exception was successfully handled. Returns true if handled, false otherwise.</returns>
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception ex, CancellationToken token)
     {
-        if (ex is not BadHttpRequestException bhre || !bhre.Message.StartsWith("Failed to bind parameter")) 
+        if (ex is not BadHttpRequestException badHttpRequestException)
             return false;
         
-        var (name, value, typeHintRaw) = BinderMessageParser.Parse(bhre.Message);
+        badHttpRequestException.Data.Add("BadHttpRequestToValidationHandler", true);
+        
+        var (name, value, typeHintRaw) = BinderMessageParser.Parse(badHttpRequestException.Message);
         var typeHint = BinderMessageParser.UnwrapNullable(typeHintRaw);
 
         var pds = context.RequestServices.GetRequiredService<IProblemDetailsService>();
         var vpd = new ValidationProblemDetails(new Dictionary<string, string[]>
         {
-            [name ?? "parameter"] = new[] { FriendlyError(typeHint, value) }
+            [name ?? "referenceId"] = new[] { FriendlyError(typeHint, value) }
         })
         {
             Status = StatusCodes.Status400BadRequest,
             Title  = "One or more parameters are invalid."
         };
+
+        // Explicitly set the HTTP response status to 400 to avoid default 500 from the exception handler
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
         await pds.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = vpd });
         return true; // ← tells middleware it's handled (no error log)

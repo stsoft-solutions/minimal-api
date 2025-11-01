@@ -1,6 +1,6 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query
-Accept: application/problem+json
+Accept: application/json
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -98,7 +98,7 @@ Accept: application/json
 
 ### Pass wrong reference ID
 GET {{HostAddress}}/payments/query?referenceId=wrong-format-id
-Accept: application/json
+Accept: application/problem+json
 
 > {%
     client.test("Request has validation error. Wrong GUID", function () {
@@ -106,6 +106,6 @@ Accept: application/json
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.status[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
+        client.assert(response.body.errors.referenceId[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
     });
 %}

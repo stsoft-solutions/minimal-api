@@ -5,7 +5,7 @@ using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
-namespace Sts.Minimal.Api.Infrastructure.OpenApi;
+namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
 public sealed class IsoDateOnlyTransformer : IOpenApiOperationTransformer
 {
@@ -18,7 +18,7 @@ public sealed class IsoDateOnlyTransformer : IOpenApiOperationTransformer
             if (pi is null) continue;
 
             // 2) Check for your custom attribute
-            if (pi.GetCustomAttribute<IsoDateOnlyAttribute>() is null)
+            if (pi.GetCustomAttribute<StringAsIsoDateAttribute>() is null)
                 continue;
 
             // 3) Find and modify the OpenAPI parameter

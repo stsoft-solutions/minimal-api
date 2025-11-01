@@ -8,6 +8,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using Sts.Minimal.Api.Infrastructure.Middleware;
+using Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
@@ -71,22 +72,6 @@ public static class OpenApiExtensions
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
 
-        // --- 1 Pre-handler middleware: intercept binder errors early ---
-        app.Use(async (context, next) =>
-        {
-            try
-            {
-                await next();
-            }
-            catch (BadHttpRequestException ex) when (ex.Message.StartsWith("Failed to bind parameter"))
-            {
-                // Reuse your existing IExceptionHandler
-                var handler = context.RequestServices.GetRequiredService<BadHttpRequestToValidationHandler>();
-                await handler.TryHandleAsync(context, ex, context.RequestAborted);
-
-                // DO NOT rethrow — this prevents the framework from logging the “unhandled exception”
-            }
-        });
         
         // --- 2 Then the framework-wide exception handler for all other exceptions ---
         app.UseExceptionHandler(); // handles everything else (NullReferenceException, etc.)

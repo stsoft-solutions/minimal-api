@@ -1,5 +1,7 @@
 ﻿using Serilog;
 using Serilog.Enrichers.Span;
+using Microsoft.AspNetCore.Http;
+using Serilog.Events;
 
 namespace Sts.Minimal.Api.Infrastructure.Host;
 
@@ -91,13 +93,29 @@ public static class HostAppExtensionsAndFactory
     private static LoggerConfiguration SerilogConfiguration(WebApplicationBuilder builder)
     {
         var configuration = new LoggerConfiguration()
-            .ReadFrom.Configuration(builder.Configuration)
-            .Enrich.FromLogContext()
-            .Enrich.WithMachineName()
-            .Enrich.WithEnvironmentName()
-            .Enrich.WithThreadId()
-            .Enrich.WithSpan()
-            .Enrich.WithProperty("Application", builder.Environment.ApplicationName);
+                .ReadFrom.Configuration(builder.Configuration)
+                .Enrich.FromLogContext()
+                .Enrich.WithMachineName()
+                .Enrich.WithEnvironmentName()
+                .Enrich.WithThreadId()
+                .Enrich.WithSpan()
+                .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
+
+                // Suppress the specific error log for binder failures (BadHttpRequestException: "Failed to bind parameter ...")
+                // Scope to logs emitted by ExceptionHandlerMiddleware to avoid hiding other sources
+                .Filter.ByExcluding(e =>
+                {
+                    var result = e.Level == LogEventLevel.Error &&
+                                 e.Exception is BadHttpRequestException ex &&
+                                 (ex.Message?.StartsWith("Failed to bind parameter") ?? false) &&
+                                 e.Properties.TryGetValue("SourceContext", out var sc) &&
+                                 sc is ScalarValue sv && sv.Value is string src &&
+                                 src.Contains("ExceptionHandlerMiddleware");
+                    
+                    
+                    return result;
+                })
+            ;
 
         return configuration;
     }
