@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using Sts.Minimal.Api.Infrastructure.Middleware;
 using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi;
