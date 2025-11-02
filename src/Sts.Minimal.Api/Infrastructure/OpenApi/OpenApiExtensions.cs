@@ -46,8 +46,8 @@ public static class OpenApiExtensions
                 return Task.CompletedTask;
             });
 
-            // Add IsoDateOnlyTransformer
-            options.AddOperationTransformer<IsoDateOnlyTransformer>();
+            // Add IsoDateOnlyStringTransformer
+            options.AddOperationTransformer<IsoDateOnlyStringTransformer>();
 
             // Add EnumStringTransformer to expose enum choices for string-bound enums
             options.AddOperationTransformer<EnumStringTransformer>();

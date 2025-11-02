@@ -7,7 +7,7 @@ using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
-public sealed class IsoDateOnlyTransformer : IOpenApiOperationTransformer
+public sealed class IsoDateOnlyStringTransformer : IOpenApiOperationTransformer
 {
     public Task TransformAsync(OpenApiOperation op, OpenApiOperationTransformerContext ctx, CancellationToken _)
     {
