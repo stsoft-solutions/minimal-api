@@ -51,7 +51,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             Title = "One or more parameters are invalid."
         };
 
-        // Explicitly set the HTTP response status to 400 to avoid default 500 from the exception handler
+        // Explicitly set the HTTP response status to 400 to avoid the default 500 from the exception handler
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
         await pds.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = vpd });
@@ -65,7 +65,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     /// A string that indicates the expected type of the parameter, used to customize the error message
     /// (e.g., "int", "guid", "dateonly").
     /// </param>
-    /// <param name="_">The actual parameter value that caused the error, not used in this method.</param>
+    /// <param name="_">The actual parameter value that caused the error isn't used in this method.</param>
     /// <returns>A user-friendly error message indicating the expected format or type of the parameter.</returns>
     private static string FriendlyError(string? typeHint, string? _)
     {
@@ -118,7 +118,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         /// </summary>
         /// <param name="raw">
         /// The raw string representation of the nullable type,
-        /// possibly in the format "Nullable<T>" or "Nullable`1[T]".
+        /// possibly in the format Nullable&lt;T&gt; or Nullable`1[T].
         /// </param>
         /// <returns>
         /// The extracted inner type as a string if the input represents a nullable type;
