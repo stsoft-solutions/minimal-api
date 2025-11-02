@@ -3,6 +3,7 @@
   <component name="UserContentModel">
     <attachedFolders>
       <Path>docker</Path>
+      <Path>http</Path>
     </attachedFolders>
     <explicitIncludes />
     <explicitExcludes />
