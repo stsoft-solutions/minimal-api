@@ -4,11 +4,10 @@ services:
   seq:
     image: datalust/seq
     ports:
-      - 5340:80
-      - 5341:5341
+      - "5340:80"
+      - "5341:5341"
     environment:
       ACCEPT_EULA: Y
-      #SEQ_API_CANONICALURI: https://seq.sandbox.fgate.fintegrator.eu
     volumes:
       - seq_data:/data
     restart: unless-stopped
