@@ -5,44 +5,50 @@ using Microsoft.AspNetCore.Mvc;
 namespace Sts.Minimal.Api.Infrastructure.Middleware;
 
 /// <summary>
-/// Handles exceptions of type <see cref="BadHttpRequestException"/> that occur due to
+/// Handles exceptions of type <see cref="BadHttpRequestException" /> that occur due to
 /// failed parameter binding. Converts the exception into a standardized
 /// validation problem response compatible with API conventions.
 /// </summary>
 /// <remarks>
 /// This handler is specifically designed to process exceptions where the
 /// message starts with "Failed to bind parameter". It extracts error
-/// details from the exception and generates a <see cref="ValidationProblemDetails"/>
+/// details from the exception and generates a <see cref="ValidationProblemDetails" />
 /// response, providing meaningful feedback about invalid parameters.
 /// </remarks>
-/// <seealso cref="IExceptionHandler"/>
+/// <seealso cref="IExceptionHandler" />
 public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandler
 {
     /// <summary>
-    /// Attempts to handle a <see cref="BadHttpRequestException"/> by generating a validation error response.
+    /// Attempts to handle a <see cref="BadHttpRequestException" /> by generating a validation error response.
     /// </summary>
     /// <param name="context">The current HTTP context associated with the request.</param>
-    /// <param name="ex">The exception to handle, which must be of type <see cref="BadHttpRequestException"/> to proceed with handling.</param>
-    /// <param name="token">A <see cref="CancellationToken"/> to observe while performing the asynchronous operation.</param>
-    /// <returns>A <see cref="ValueTask{Boolean}"/> indicating whether the exception was successfully handled. Returns true if handled, false otherwise.</returns>
+    /// <param name="ex">
+    /// The exception to handle, which must be of type <see cref="BadHttpRequestException" /> to proceed with
+    /// handling.
+    /// </param>
+    /// <param name="token">A <see cref="CancellationToken" /> to observe while performing the asynchronous operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{Boolean}" /> indicating whether the exception was successfully handled. Returns true if
+    /// handled, false otherwise.
+    /// </returns>
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception ex, CancellationToken token)
     {
         if (ex is not BadHttpRequestException badHttpRequestException)
             return false;
-        
+
         badHttpRequestException.Data.Add("BadHttpRequestToValidationHandler", true);
-        
+
         var (name, value, typeHintRaw) = BinderMessageParser.Parse(badHttpRequestException.Message);
         var typeHint = BinderMessageParser.UnwrapNullable(typeHintRaw);
 
         var pds = context.RequestServices.GetRequiredService<IProblemDetailsService>();
         var vpd = new ValidationProblemDetails(new Dictionary<string, string[]>
         {
-            [name ?? "referenceId"] = new[] { FriendlyError(typeHint, value) }
+            [name ?? "referenceId"] = [FriendlyError(typeHint, value)]
         })
         {
             Status = StatusCodes.Status400BadRequest,
-            Title  = "One or more parameters are invalid."
+            Title = "One or more parameters are invalid."
         };
 
         // Explicitly set the HTTP response status to 400 to avoid default 500 from the exception handler
@@ -55,7 +61,10 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     /// <summary>
     /// Generates a user-friendly error message based on the provided type hint.
     /// </summary>
-    /// <param name="typeHint">A string that indicates the expected type of the parameter, used to customize the error message (e.g., "int", "guid", "dateonly").</param>
+    /// <param name="typeHint">
+    /// A string that indicates the expected type of the parameter, used to customize the error message
+    /// (e.g., "int", "guid", "dateonly").
+    /// </param>
     /// <param name="_">The actual parameter value that caused the error, not used in this method.</param>
     /// <returns>A user-friendly error message indicating the expected format or type of the parameter.</returns>
     private static string FriendlyError(string? typeHint, string? _)
@@ -81,7 +90,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     {
         // Regex pattern for parsing messages generated during model binding failures.
         // Example: "Failed to bind parameter 'value' from '123'."
-        static readonly Regex Rx = new(
+        private static readonly Regex Rx = new(
             "Failed to bind parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+from\\s+\"(?<value>.*?)\"",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -99,15 +108,18 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         public static (string? name, string? value, string? typeHint) Parse(string message)
         {
             var m = Rx.Match(message);
-            if (!m.Success) return (null, null, null);
-            return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value);
+            return !m.Success
+                ? (null, null, null)
+                : (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value);
         }
 
         /// <summary>
         /// Extracts the underlying type from a nullable type representation in string format.
         /// </summary>
-        /// <param name="raw">The raw string representation of the nullable type,
-        /// possibly in the format "Nullable<T>" or "Nullable`1[T]".</param>
+        /// <param name="raw">
+        /// The raw string representation of the nullable type,
+        /// possibly in the format "Nullable<T>" or "Nullable`1[T]".
+        /// </param>
         /// <returns>
         /// The extracted inner type as a string if the input represents a nullable type;
         /// otherwise, returns the original input string.
@@ -124,7 +136,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
         [GeneratedRegex("^Nullable<(?<inner>[^>]+)>$")]
         private static partial Regex NullableRegex1();
-        [GeneratedRegex("^Nullable`\\d+\\[(?<inner>[^\\]]+)\\]$")]
+
+        [GeneratedRegex(@"^Nullable`\d+\[(?<inner>[^\]]+)\]$")]
         private static partial Regex NullableRegex2();
     }
 }
