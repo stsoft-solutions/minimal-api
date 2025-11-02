@@ -22,7 +22,9 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 - Consistent problem+json errors, including friendly parameter binding errors (400) for invalid query/path values
 - OpenAPI 3.0 with Scalar API Reference UI (enum choices and ISO `dateOnly` formats)
 - Structured logging via Serilog with per-request `TraceId` enrichment
-- Ready‑to‑use HTTP request samples (JetBrains HTTP Client / VS Code REST Client)
+- Ready‑to‑use HTTP request samples under `http/` (JetBrains HTTP Client / VS Code REST Client)
+- Optional OpenTelemetry traces/metrics export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
+- Seq logging sink preconfigured (see `docker/docker-compose.yml`)
 
 ---
 
@@ -31,14 +33,14 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 ### Prerequisites
 
 - .NET SDK 9.0 or later
+- Optional: Docker (for Seq log viewer)
 
-### Clone and run
+### Run the API (Development)
 
 ```bash
 # From repo root
 cd src/Sts.Minimal.Api
 
-# Run the API (Development environment)
 dotnet run
 ```
 
@@ -48,7 +50,21 @@ The API listens by default on:
 - OpenAPI document: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
 
-(See `src/Sts.Minimal.Api/Properties/launchSettings.json` to adjust.)
+See `src/Sts.Minimal.Api/Properties/launchSettings.json` to adjust the port and environment.
+
+### Optional: Start Seq for log viewing
+
+```bash
+# From repo root
+cd docker
+
+docker compose up -d
+```
+
+- Seq UI: `http://localhost:5340`
+- Seq ingestion endpoint: `http://localhost:5341`
+
+Serilog is already configured to send logs to Seq at `http://localhost:5341`. If your Seq instance does not require an API key (typical for local), you can remove or override the `apiKey` setting via environment variables or user secrets.
 
 ---
 
@@ -56,16 +72,16 @@ The API listens by default on:
 
 Base path: `/payments`
 
-- GET `/payments/{paymentId:int}` — Retrieve a payment by ID
+- GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable)
   - 200: `GetPaymentResponse`
   - 400: Validation problem
   - 404: Not found
-- GET `/payments/query` — Query payments via individual query params
-  - Query: `paymentId: int? (1..1000)`, `valueDate: yyyy-MM-dd`, `status: PaymentStatus`, `referenceId: Guid?`
+- GET `/payments/query` — Query payments via individual query params (Experimental)
+  - Query: `paymentId: int? (1..1000)`, `valueDate: yyyy-MM-dd`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
   - 200: `IEnumerable<GetPaymentsItem>`
-- GET `/payments/query-param` — Query using a parameter object
+- GET `/payments/query-param` — Query using a parameter object (Stable)
   - 200: `IEnumerable<GetPaymentsItem>`
-- POST `/payments` — Create/process a new payment
+- POST `/payments` — Create/process a new payment (Stable)
   - 200: `PostPaymentResponse`
   - 400: Validation problem
 
@@ -75,7 +91,7 @@ See `src/Sts.Minimal.Api/Features/Payment` for implementation details.
 
 ## Try it out (HTTP examples)
 
-Ready‑made request files are available under `src/Sts.Minimal.Api/http`. You can run them with:
+Ready‑made request files are available under `http/`. You can run them with:
 
 - JetBrains Rider / IntelliJ HTTP Client (built‑in)
 - VS Code with the REST Client extension
@@ -109,11 +125,25 @@ Configuration files:
 - `src/Sts.Minimal.Api/appsettings.Development.json`
 
 Logging is configured via Serilog (see `Infrastructure/Host/HostAppExtensionsAndFactory.cs`).
+- Sinks: Console and Seq (`http://localhost:5341` by default)
+- To use Seq locally, run `docker/docker-compose.yml` (see Quick start) and open `http://localhost:5340`
 
 Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.cs`):
 
 - Map OpenAPI: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
+
+---
+
+## Telemetry (OpenTelemetry)
+
+Tracing and metrics via OTLP are enabled only when an OTLP endpoint is configured.
+
+- Set environment variable `OTEL_EXPORTER_OTLP_ENDPOINT` to a valid URL, e.g.:
+  - Windows PowerShell: `setx OTEL_EXPORTER_OTLP_ENDPOINT "http://localhost:4317"`
+  - Bash: `export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317`
+- The development profile sets: `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:17011` in `Properties/launchSettings.json`. Change it to your collector address or remove it to disable OTLP.
+- When not set or invalid, the app starts normally and logs: "OTLP endpoint not configured".
 
 ---
 
@@ -146,6 +176,9 @@ Common messages include:
 
 ```
 minimal-api/
+├─ docker/
+│  └─ docker-compose.yml    # Seq log viewer
+├─ http/                     # runnable HTTP request samples
 ├─ src/
 │  └─ Sts.Minimal.Api/
 │     ├─ Features/
@@ -159,7 +192,6 @@ minimal-api/
 │     │  ├─ Host/
 │     │  ├─ OpenApi/
 │     │  └─ Validation/
-│     ├─ http/              # runnable HTTP request samples
 │     ├─ Program.cs
 │     └─ Sts.Minimal.Api.csproj
 ├─ LICENSE

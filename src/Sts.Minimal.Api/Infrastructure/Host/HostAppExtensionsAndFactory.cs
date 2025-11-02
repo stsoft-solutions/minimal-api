@@ -1,6 +1,9 @@
-﻿using Serilog;
+﻿using Microsoft.AspNetCore.HostFiltering;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
 using Serilog.Enrichers.Span;
-using Microsoft.AspNetCore.Http;
 using Serilog.Events;
 
 namespace Sts.Minimal.Api.Infrastructure.Host;
@@ -45,47 +48,55 @@ public static class HostAppExtensionsAndFactory
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Log.CloseAndFlush();
         Console.CancelKeyPress += (_, _) => Log.CloseAndFlush();
 
+        // Configure Host Filtering from configuration
+        builder.Services.Configure<HostFilteringOptions>(
+            builder.Configuration.GetSection("HostFiltering"));
+
         Log.Information("Starting {Application} v{ServiceVersion} on {Environment} environment",
             builder.Environment.ApplicationName, serviceVersion, builder.Environment.EnvironmentName);
 
-        // // OpenTelemetry Tracing & Metrics
-        // var resourceBuilder = ResourceBuilder.CreateDefault()
-        //     .AddService(builder.Environment.ApplicationName, serviceVersion: serviceVersion,
-        //         serviceInstanceId: Environment.MachineName);
-        //
-        // var otlpEndpointUrl = builder.Configuration.GetConnectionString("OTLP_ENDPOINT");
+        // OpenTelemetry Tracing & Metrics
+        var resourceBuilder = ResourceBuilder.CreateDefault()
+            .AddService(builder.Environment.ApplicationName, serviceVersion: serviceVersion,
+                serviceInstanceId: Environment.MachineName);
 
-        //if (string.IsNullOrEmpty(otlpEndpointUrl)) return builder;
+        var otlpEndpointUrl = builder.Configuration.GetValue<string>("OTEL_EXPORTER_OTLP_ENDPOINT");
+        if (!string.IsNullOrEmpty(otlpEndpointUrl) &&
+            Uri.TryCreate(otlpEndpointUrl, UriKind.Absolute, out var otlpEndpoint) &&
+            (otlpEndpoint.Scheme == Uri.UriSchemeHttp || otlpEndpoint.Scheme == Uri.UriSchemeHttps))
+        {
+            // OTLP endpoint must be a valid URL
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(tracerProviderBuilder =>
+                {
+                    tracerProviderBuilder
+                        .SetResourceBuilder(resourceBuilder)
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddEntityFrameworkCoreInstrumentation(options =>
+                        {
+                            options.SetDbStatementForStoredProcedure = true;
+                            options.SetDbStatementForText = true;
+                        })
+                        .AddOtlpExporter();
+                })
+                .WithMetrics(meterProviderBuilder =>
+                {
+                    meterProviderBuilder
+                        .SetResourceBuilder(resourceBuilder)
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddRuntimeInstrumentation()
+                        .AddOtlpExporter();
+                });
 
-        // var otlpEndpoint = new Uri(otlpEndpointUrl);
-        // builder.Services.AddOpenTelemetry()
-        //     .WithTracing(tracerProviderBuilder =>
-        //     {
-        //         tracerProviderBuilder
-        //             .SetResourceBuilder(resourceBuilder)
-        //             .AddSource(RabbitMqConsumerBase.OtlpSourceName, RabbitMqPublisher.OtlpSourceName)
-        //             .AddAspNetCoreInstrumentation()
-        //             .AddHttpClientInstrumentation()
-        //             .AddEntityFrameworkCoreInstrumentation(options =>
-        //             {
-        //                 options.SetDbStatementForStoredProcedure = true;
-        //                 options.SetDbStatementForText = true;
-        //             })
-        //             .AddKeycloakAuthServicesInstrumentation()
-        //             .AddOtlpExporter(options => { options.Endpoint = otlpEndpoint; });
-        //     })
-        //     .WithMetrics(meterProviderBuilder =>
-        //     {
-        //         meterProviderBuilder
-        //             .SetResourceBuilder(resourceBuilder)
-        //             .AddAspNetCoreInstrumentation()
-        //             .AddHttpClientInstrumentation()
-        //             .AddRuntimeInstrumentation()
-        //             .AddKeycloakAuthServicesInstrumentation()
-        //             .AddOtlpExporter(options => { options.Endpoint = otlpEndpoint; });
-        //     });
-        //
-        // logger.Information("OpenTelemetry enabled with OTLP endpoint: {OtlpEndpoint}", otlpEndpointUrl);
+            Log.Information("OpenTelemetry enabled with OTLP endpoint: {OtlpEndpoint}", otlpEndpointUrl);
+        }
+        else
+        {
+            Log.Information(
+                "OTLP endpoint not configured. Set environment variable OTEL_EXPORTER_OTLP_ENDPOINT (http://localhost:4317 or http://localhost:17011)");
+        }
 
         return builder;
     }
@@ -93,7 +104,9 @@ public static class HostAppExtensionsAndFactory
     private static LoggerConfiguration SerilogConfiguration(WebApplicationBuilder builder)
     {
         var configuration = new LoggerConfiguration()
+                // Load configuration from configuration (appsettings.json)
                 .ReadFrom.Configuration(builder.Configuration)
+                // Enrich logs with additional properties
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithEnvironmentName()
@@ -111,8 +124,8 @@ public static class HostAppExtensionsAndFactory
                                  e.Properties.TryGetValue("SourceContext", out var sc) &&
                                  sc is ScalarValue sv && sv.Value is string src &&
                                  src.Contains("ExceptionHandlerMiddleware");
-                    
-                    
+
+
                     return result;
                 })
             ;
@@ -143,15 +156,23 @@ public static class HostAppExtensionsAndFactory
         builder.Services.AddHttpLogging();
     }
 
-    public static WebApplication UseStsHost(this WebApplication app)
+    public static IApplicationBuilder UseStsHost(this IApplicationBuilder app)
     {
         // Configure logging middleware
-        app.UseHttpLogging();
-
-        // Configure request logging middleware
         app.UseSerilogRequestLogging(options =>
-            options.EnrichDiagnosticContext = (diagCtx, httpContext) =>
-                diagCtx.Set("TraceId", httpContext.TraceIdentifier));
+        {
+            options.IncludeQueryInRequestPath = true;
+
+            // Emit debug-level events instead of the defaults
+            options.GetLevel = (httpContext, elapsed, ex) => LogEventLevel.Debug;
+
+            // Attach additional properties to the request completion event
+            options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+            {
+                diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
+                diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+            };
+        });
 
         return app;
     }
