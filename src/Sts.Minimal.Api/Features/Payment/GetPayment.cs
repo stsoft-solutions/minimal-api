@@ -9,12 +9,13 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// <summary>
 /// Provides a method to handle a GET payment request by payment ID.
 /// </summary>
-public static class GetPayment
+public class GetPayment
 {
     /// <summary>
     /// Handles the GET payment request by retrieving payment information based on the provided payment ID.
     /// </summary>
     /// <param name="paymentId">The ID of the payment to retrieve. Must be a number between 1 and 1000.</param>
+    /// <param name="logger">Logger</param>
     /// <returns>
     /// A <see cref="Results" /> object that can represent the following outcomes:
     /// <list type="bullet">
@@ -38,9 +39,12 @@ public static class GetPayment
             [Required]
             [Range(1, 1000)]
             [Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
-            int paymentId
+            int paymentId,
+            [FromServices] ILogger<GetPayment> logger
         )
     {
+        logger.LogInformation("Fetching payment with PaymentId: {PaymentId}", paymentId);
+        
         // Small delay to simulate async operation
         await Task.Delay(50);
 

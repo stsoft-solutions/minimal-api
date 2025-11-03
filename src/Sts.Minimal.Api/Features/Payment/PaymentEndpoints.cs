@@ -29,7 +29,7 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
-        group.MapGet("/query", GetPayments.HandleAsync)
+        group.MapGet("/query", GetPaymentsQuery.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("GetPaymentsQuery")
             .WithDescription("Retrieves payments information using query parameters.")
@@ -38,9 +38,9 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Experimental();
 
-        group.MapGet("/query-param", GetPaymentsParam.HandleAsync)
+        group.MapGet("/query-param", GetPaymentsQueryAsParam.HandleAsync)
             .AddDataAnnotationsValidation()
-            .WithName("GetPaymentsQueryParam")
+            .WithName("GetPaymentsQueryAsParam")
             .WithDescription("Retrieves payments information using a query parameter object.")
             .Produces<GetPaymentsItem>()
             .ProducesValidationProblem()

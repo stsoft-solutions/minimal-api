@@ -11,19 +11,19 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// <summary>
 /// Provides functionality to retrieve payment information based on query parameters.
 /// </summary>
-public class GetPayments
+public class GetPaymentsQuery
 {
     public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>>
         HandleAsync(
             [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
             int? paymentId,
-            [FromQuery(Name = "valueDate")] [Description("Value date")] [StringAsIsoDate]
-            string? valueDate,
+            [FromQuery(Name = "valueDateString")] [Description("Value date")] [StringAsIsoDate]
+            string? valueDateString,
             [FromQuery(Name = "status")] [Description("Payment's status")] [StringAsEnum(typeof(PaymentStatus))]
             string? rawStatus,
             [FromQuery(Name = "referenceId")] [Description("Reference ID")]
             Guid? referenceId,
-            [FromServices] ILogger<GetPayments> logger
+            [FromServices] ILogger<GetPaymentsQuery> logger
         )
     {
         // Small delay to simulate async operation
@@ -34,7 +34,7 @@ public class GetPayments
 
         logger.LogInformation(
             "Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}, ReferenceId: {ReferenceId}",
-            paymentId, valueDate, parsedStatus, referenceId);
+            paymentId, valueDateString, parsedStatus, referenceId);
 
         // Here you would typically filter payments based on the provided parameters.
         return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());

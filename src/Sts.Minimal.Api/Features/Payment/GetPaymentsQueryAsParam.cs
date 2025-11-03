@@ -7,26 +7,27 @@ namespace Sts.Minimal.Api.Features.Payment;
 /// <summary>
 /// Provides a static method for handling a query to retrieve payments using a query parameter object.
 /// </summary>
-public class GetPaymentsParam
+public class GetPaymentsQueryAsParam
 {
     /// <summary>
     /// Handles asynchronous processing of the payment query using the specified request parameters.
     /// </summary>
     /// <param name="request">The object containing query parameters for retrieving payments.</param>
+    /// <param name="logger">Logger</param>
     /// <returns>
     /// A task that represents the asynchronous operation, returning a result with one of the following outcomes:
     /// - An Ok result containing a collection of <see cref="GetPaymentsItem" /> objects if payments are found.
     /// - A NotFound result if no payments match the criteria.
-    /// - A ValidationProblem result if input validation errors occur.
+    /// - A ValidationProblem results if input validation errors occur.
     /// </returns>
-    public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>
+    public static Task<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>
         HandleAsync(
             [AsParameters] GetPaymentsRequest request,
-            [FromServices] ILogger<GetPaymentsParam> logger
+            [FromServices] ILogger<GetPaymentsQueryAsParam> logger
         )
     {
         logger.LogInformation("Get Payments request {@Request}", request);
 
-        return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());
+        return Task.FromResult<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>(TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable()));
     }
 }
