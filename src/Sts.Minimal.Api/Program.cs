@@ -18,7 +18,10 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         var cfg = builder.Configuration;
         options.Authority = cfg["Auth:Authority"]; // e.g. http://localhost:8080/realms/sts-realm
-        options.RequireHttpsMetadata = false; // dev only
+        if (builder.Environment.IsDevelopment())
+        {
+            options.RequireHttpsMetadata = false; // dev only
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = false // simplify dev with a Keycloak public client
