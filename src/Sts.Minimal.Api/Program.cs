@@ -24,7 +24,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         }
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = false // simplify dev with a Keycloak public client
+            ValidateAudience = builder.Environment.IsDevelopment() ? false : true // Only disable in development
         };
     });
 services.AddAuthorization();
