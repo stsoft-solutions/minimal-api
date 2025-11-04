@@ -1,6 +1,7 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -15,6 +16,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid payment ID
 GET {{HostAddress}}/payments/query?paymentId=5000
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -30,6 +32,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid valueDateString
 GET {{HostAddress}}/payments/query?valueDateString=invalid-date
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -44,6 +47,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid valueDateString (wrong date)
 GET {{HostAddress}}/payments/query?valueDateString=2025-31-31
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -59,6 +63,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid status (wrong status)
 GET {{HostAddress}}/payments/query?status=wrong
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Wrong status", function () {
@@ -73,6 +78,7 @@ Accept: application/json, application/problem+json
 ### Pass special status (FINISHED)
 GET {{HostAddress}}/payments/query?status=FINISHED
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -86,6 +92,7 @@ Accept: application/json, application/problem+json
 ### Pass reference ID
 GET {{HostAddress}}/payments/query?referenceId={{$random.uuid}}
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -99,6 +106,7 @@ Accept: application/json, application/problem+json
 ### Pass wrong reference ID
 GET {{HostAddress}}/payments/query?referenceId=wrong-format-id
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request has validation error. Wrong GUID", function () {

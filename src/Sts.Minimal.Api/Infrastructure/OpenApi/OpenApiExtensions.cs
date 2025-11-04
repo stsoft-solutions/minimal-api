@@ -37,14 +37,21 @@ public static class OpenApiExtensions
                     Name = "STS Support",
                     Email = "support@stsoft.solutions"
                 };
+
                 return Task.CompletedTask;
             });
+
+            // Add AddJwtBearerSchemeDocumentTransformer to add JWT Bearer scheme to components
+            options.AddDocumentTransformer<JwtBearerSecuritySchemeTransformer>();
 
             // Add IsoDateOnlyStringTransformer
             options.AddOperationTransformer<IsoDateOnlyStringTransformer>();
 
             // Add EnumStringTransformer to expose enum choices for string-bound enums
             options.AddOperationTransformer<EnumStringTransformer>();
+
+            // Add the JWT Bearer scheme to the operation
+            options.AddOperationTransformer<JwtBearerOperationTransformer>();
         });
 
         // Add API explorer for endpoint metadata
@@ -77,14 +84,8 @@ public static class OpenApiExtensions
         app.Logger.LogInformation("Configuring Scalar API Reference at http://localhost:5239/scalar");
         app.MapScalarApiReference(options =>
         {
-            options.EnabledClients =
-            [
-                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient
-            ];
-            options.EnabledTargets =
-            [
-                ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell
-            ];
+            options.EnabledClients = [ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient];
+            options.EnabledTargets = [ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell];
             options.Authentication = new ScalarAuthenticationOptions
             {
                 PreferredSecuritySchemes = [JwtBearerDefaults.AuthenticationScheme]

@@ -2,7 +2,7 @@
 
 A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint organization, request validation, OpenAPI/Scalar API reference, and structured logging with Serilog.
 
-> Tech stack: .NET 9, ASP.NET Core Minimal APIs, Serilog, Scalar (OpenAPI UI)
+> Tech stack: .NET 9, ASP.NET Core Minimal APIs, Serilog, Scalar (OpenAPI UI), JWT auth (Keycloak)
 
 ---
 
@@ -20,6 +20,7 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 - Request validation via data annotations and custom endpoint filters
 - Consistent problem+json errors, including friendly parameter binding errors (400) for invalid query/path values
 - OpenAPI 3.0 with Scalar API Reference UI (enum choices and ISO `dateOnly` formats)
+- JWT Bearer security integrated into OpenAPI and Scalar (Keycloak), with auth button in Scalar UI
 - Structured logging via Serilog with per-request `TraceId` enrichment
 - Ready‑to‑use HTTP request samples under `http/` (JetBrains HTTP Client / VS Code REST Client)
 - Optional OpenTelemetry traces/metrics export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
@@ -65,20 +66,52 @@ docker compose up -d
 
 Serilog is already configured to send logs to Seq at `http://localhost:5341`. If your Seq instance does not require an API key (typical for local), you can remove or override the `apiKey` setting via environment variables or user secrets.
 
+### Optional: Start Keycloak (for JWT auth)
+
+The repo includes a ready-to-use Keycloak container and realm for local development.
+
+- Keycloak Admin Console: `http://localhost:8080` (admin/admin)
+- Realm: `sts-realm`
+- Client: `sts-api` (public client)
+- Sample user: `api-user` / `pwd`
+
+The above are brought up by the same `docker compose up -d` command in the `docker` folder.
+
+### Obtain an access token
+
+Use the provided HTTP file or curl:
+
+- JetBrains HTTP Client: run `http/Keycloak.Token.http`
+- Curl (bash):
+
+```bash
+TOKEN=$(curl -s -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=password&client_id=sts-api&username=api-user&password=pwd&scope=openid" \
+  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r .access_token)
+
+echo "Token: ${TOKEN:0:20}..."
+```
+
+Then call the API with `Authorization: Bearer <token>`.
+
 ---
 
 ## API overview
 
 Base path: `/payments`
 
-- GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable)
+Most endpoints require Authorization with a Bearer JWT (Keycloak). Use the access token from the steps above. The GET `/payments/{paymentId:int}` endpoint is intentionally left anonymous for demonstration purposes.
+
+- GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable, Anonymous)
   - 200: `GetPaymentResponse`
   - 400: Validation problem
   - 404: Not found
 - GET `/payments/query` — Query payments via individual query params (Experimental)
-  - Query: `paymentId: int? (1..1000)`, `valueDate: yyyy-MM-dd`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
+  - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: YYYY-MM-DD`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
   - 200: `IEnumerable<GetPaymentsItem>`
 - GET `/payments/query-param` — Query using a parameter object (Stable)
+  - Query params (kebab-case): `payment-id`, `value-date` (YYYY-MM-DD), `status`
   - 200: `IEnumerable<GetPaymentsItem>`
 - POST `/payments` — Create/process a new payment (Stable)
   - 200: `PostPaymentResponse`
@@ -95,23 +128,32 @@ Ready‑made request files are available under `http/`. You can run them with:
 - JetBrains Rider / IntelliJ HTTP Client (built‑in)
 - VS Code with the REST Client extension
 
+The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` already includes OAuth2 settings for Keycloak (client `sts-api`, user `api-user`). Use the `dev` environment to automatically acquire tokens via `{{$auth.token("auth-id")}}` in the sample requests.
+
 Examples (curl):
 
 ```bash
+# Assume TOKEN environment variable contains a valid access token (see Obtain an access token)
+
 # Get a payment (expected 404 if not found)
-curl -i "http://localhost:5239/payments/23" -H "Accept: application/json, application/problem+json"
+curl -i "http://localhost:5239/payments/23" \
+  -H "Accept: application/json, application/problem+json"
 
 # Prohibited ID example (expected 400 with problem+json)
-curl -i "http://localhost:5239/payments/666" -H "Accept: application/json, application/problem+json"
+curl -i "http://localhost:5239/payments/666" \
+  -H "Accept: application/json, application/problem+json"
 
 # Successful read (example ID 1)
 curl -s "http://localhost:5239/payments/1" | jq .
 
-# Query endpoint
-curl -s "http://localhost:5239/payments/query?paymentId=10&valueDate=2025-01-01&status=Completed&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a"
+# Query endpoint (individual params)
+curl -s "http://localhost:5239/payments/query?paymentId=10&valueDateString=2025-01-01&status=FINISHED&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a" \
+  -H "Authorization: Bearer $TOKEN"
 
 # Binding error example for query GUID (expected 400 with problem+json)
-curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" -H "Accept: application/json, application/problem+json"
+curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" \
+  -H "Accept: application/json, application/problem+json" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -131,6 +173,8 @@ Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.
 
 - Map OpenAPI: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
+- OpenAPI transformers: `JwtBearerSecuritySchemeTransformer` (adds `bearer` security scheme) and `JwtBearerOperationTransformer` (applies JWT requirement to operations)
+- Scalar UI is configured to prefer JWT Bearer; use the Auth button in Scalar to paste a Keycloak token
 
 ---
 
@@ -204,7 +248,9 @@ minimal-api/
 │     │  │  ├─ OpenApiExtensions.cs
 │     │  │  └─ Transformers/
 │     │  │     ├─ EnumStringTransformer.cs
-│     │  │     └─ IsoDateOnlyStringTransformer.cs
+│     │  │     ├─ IsoDateOnlyStringTransformer.cs
+│     │  │     ├─ JwtBearerOperationTransformer.cs
+│     │  │     └─ JwtBearerSecuritySchemeTransformer.cs
 │     │  ├─ Serialization/
 │     │  │  └─ EnumParsing.cs
 │     │  └─ Validation/

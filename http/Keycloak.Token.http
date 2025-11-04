@@ -1,0 +1,27 @@
+﻿### Obtain access token via Resource Owner Password (Direct Access Grants)
+# Requires Keycloak container up and realm imported (docker compose up -d)
+# This request stores tokens into global variables: access_token (and id_token if present)
+POST http://localhost:8080/realms/sts-realm/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded
+
+# Note: id_token is only returned if scope includes 'openid'. It's not required for API calls.
+# Add scope below if you want id_token captured as well.
+grant_type=password&client_id=sts-api&username=api-user&password=pwd&scope=openid
+
+> {%
+  const raw = response.body;
+  const body = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+  if (body && body.access_token) {
+    client.global.set('access_token', body.access_token);
+  }
+  if (body && body.id_token) {
+    client.global.set('id_token', body.id_token);
+  }
+  if (body && body.expires_in) {
+    client.global.set('access_token_expires_in', String(body.expires_in));
+  }
+  client.test('Token acquired', function () {
+    client.assert(response.status === 200, 'Expected 200 OK');
+    client.assert(!!client.global.get('access_token'), 'access_token was stored');
+  });
+%}

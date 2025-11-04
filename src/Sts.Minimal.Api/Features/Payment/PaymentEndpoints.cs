@@ -18,9 +18,11 @@ public static class PaymentEndpoints
     public static RouteGroupBuilder MapPaymentEndpoints(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/payments")
-            .WithTags("Payment");
+            .WithTags("Payment")
+            .RequireAuthorization();
 
         group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
+            .AllowAnonymous()
             .AddDataAnnotationsValidation()
             .WithName("GetPayment")
             .WithDescription("Retrieves payment information by payment ID.")

@@ -1,6 +1,7 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query-param
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Empty list", function () {
@@ -15,6 +16,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid payment ID
 GET {{HostAddress}}/payments/query-param?payment-id=5000
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {
@@ -30,6 +32,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid valueDate
 GET {{HostAddress}}/payments/query-param?value-date=invalid-date
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Invalid date", function () {
@@ -44,6 +47,7 @@ Accept: application/json, application/problem+json
 ### Pass invalid valueDate (wrong date)
 GET {{HostAddress}}/payments/query-param?value-date=2025-31-31
 Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Invalid date", function () {
