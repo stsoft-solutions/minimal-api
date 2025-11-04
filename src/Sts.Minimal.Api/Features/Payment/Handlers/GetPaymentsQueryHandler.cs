@@ -6,12 +6,12 @@ using Sts.Minimal.Api.Features.Payment.Model;
 using Sts.Minimal.Api.Infrastructure.Serialization;
 using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
-namespace Sts.Minimal.Api.Features.Payment;
+namespace Sts.Minimal.Api.Features.Payment.Handlers;
 
 /// <summary>
 /// Provides functionality to retrieve payment information based on query parameters.
 /// </summary>
-public class GetPaymentsQuery
+public class GetPaymentsQueryHandler
 {
     public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>>
         HandleAsync(
@@ -23,7 +23,7 @@ public class GetPaymentsQuery
             string? rawStatus,
             [FromQuery(Name = "referenceId")] [Description("Reference ID")]
             Guid? referenceId,
-            [FromServices] ILogger<GetPaymentsQuery> logger
+            [FromServices] ILogger<GetPaymentsQueryHandler> logger
         )
     {
         // Small delay to simulate async operation

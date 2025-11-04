@@ -2,12 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
 
-namespace Sts.Minimal.Api.Features.Payment;
+namespace Sts.Minimal.Api.Features.Payment.Handlers;
 
-public class PostPayment
+public class PostPaymentHandler
 {
     public static async Task<Results<Ok<PostPaymentResponse>, ValidationProblem, ProblemHttpResult>> HandleAsync(
-        [FromBody] PostPaymentRequest request, ILogger<PostPayment> logger
+        [FromBody] PostPaymentRequest request, ILogger<PostPaymentHandler> logger
     )
     {
         await Task.Delay(50);

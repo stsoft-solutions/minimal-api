@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Sts.Minimal.Api.Features.Payment.Model;
 
-namespace Sts.Minimal.Api.Features.Payment;
+namespace Sts.Minimal.Api.Features.Payment.Handlers;
 
 /// <summary>
 /// Provides a method to handle a GET payment request by payment ID.
 /// </summary>
-public class GetPayment
+public class GetPaymentHandler
 {
     /// <summary>
     /// Handles the GET payment request by retrieving payment information based on the provided payment ID.
@@ -40,7 +40,7 @@ public class GetPayment
             [Range(1, 1000)]
             [Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
             int paymentId,
-            [FromServices] ILogger<GetPayment> logger
+            [FromServices] ILogger<GetPaymentHandler> logger
         )
     {
         logger.LogInformation("Fetching payment with PaymentId: {PaymentId}", paymentId);

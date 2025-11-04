@@ -1,4 +1,5 @@
 ﻿using Scalar.AspNetCore;
+using Sts.Minimal.Api.Features.Payment.Handlers;
 using Sts.Minimal.Api.Features.Payment.Model;
 using Sts.Minimal.Api.Infrastructure.Validation;
 
@@ -19,7 +20,7 @@ public static class PaymentEndpoints
         var group = routes.MapGroup("/payments")
             .WithTags("Payment");
 
-        group.MapGet("/{paymentId:int}", GetPayment.HandleAsync)
+        group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("GetPayment")
             .WithDescription("Retrieves payment information by payment ID.")
@@ -29,7 +30,7 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
-        group.MapGet("/query", GetPaymentsQuery.HandleAsync)
+        group.MapGet("/query", GetPaymentsQueryHandler.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("GetPaymentsQuery")
             .WithDescription("Retrieves payments information using query parameters.")
@@ -38,7 +39,7 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Experimental();
 
-        group.MapGet("/query-param", GetPaymentsQueryAsParam.HandleAsync)
+        group.MapGet("/query-param", GetPaymentsQueryAsParamHandler.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("GetPaymentsQueryAsParam")
             .WithDescription("Retrieves payments information using a query parameter object.")
@@ -47,7 +48,7 @@ public static class PaymentEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
-        group.MapPost("/", PostPayment.HandleAsync)
+        group.MapPost("/", PostPaymentHandler.HandleAsync)
             .AddDataAnnotationsValidation()
             .WithName("PostPayment")
             .WithDescription("Processes a new payment.")
