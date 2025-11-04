@@ -108,10 +108,10 @@ Most endpoints require Authorization with a Bearer JWT (Keycloak). Use the acces
   - 400: Validation problem
   - 404: Not found
 - GET `/payments/query` — Query payments via individual query params (Experimental)
-  - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: yyyy-MM-dd`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
+  - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: YYYY-MM-DD`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
   - 200: `IEnumerable<GetPaymentsItem>`
 - GET `/payments/query-param` — Query using a parameter object (Stable)
-  - Query params (kebab-case): `payment-id`, `value-date` (yyyy-MM-dd), `status`
+  - Query params (kebab-case): `payment-id`, `value-date` (YYYY-MM-DD), `status`
   - 200: `IEnumerable<GetPaymentsItem>`
 - POST `/payments` — Create/process a new payment (Stable)
   - 200: `PostPaymentResponse`
