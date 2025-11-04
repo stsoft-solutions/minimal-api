@@ -2,6 +2,7 @@
 POST {{HostAddress}}/payments
 Accept: application/json, application/problem+json
 Content-Type: application/json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 {
   "amount": 90,
@@ -21,6 +22,7 @@ Content-Type: application/json
 POST {{HostAddress}}/payments
 Accept: application/json, application/problem+json
 Content-Type: application/json
+Authorization: Bearer {{$auth.token("auth-id")}}
 
 {
   "amount": 0,
