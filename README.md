@@ -9,7 +9,6 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 ## Badges
 
 <!-- Replace the placeholders with your repo details -->
-[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![.NET](https://img.shields.io/badge/.NET-9.0-5C2D91.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -177,21 +176,43 @@ Common messages include:
 ```
 minimal-api/
 ├─ docker/
-│  └─ docker-compose.yml    # Seq log viewer
-├─ http/                     # runnable HTTP request samples
+│  └─ docker-compose.yml                # Seq log viewer
+├─ http/                                 # runnable HTTP request samples
 ├─ src/
 │  └─ Sts.Minimal.Api/
 │     ├─ Features/
 │     │  └─ Payment/
 │     │     ├─ PaymentEndpoints.cs
-│     │     ├─ GetPayment.cs
-│     │     ├─ GetPayments.cs
-│     │     ├─ GetPaymentsParam.cs
+│     │     ├─ Handlers/
+│     │     │  ├─ GetPaymentHandler.cs
+│     │     │  ├─ GetPaymentsQueryHandler.cs
+│     │     │  ├─ GetPaymentsQueryAsParamHandler.cs
+│     │     │  └─ PostPaymentHandler.cs
 │     │     └─ Model/
+│     │        ├─ GetPaymentResponse.cs
+│     │        ├─ GetPaymentsItem.cs
+│     │        ├─ GetPaymentsRequest.cs
+│     │        ├─ PaymentStatus.cs
+│     │        ├─ PostPaymentRequest.cs
+│     │        └─ PostPaymentResponse.cs
 │     ├─ Infrastructure/
 │     │  ├─ Host/
+│     │  │  └─ HostAppExtensionsAndFactory.cs
+│     │  ├─ Middleware/
+│     │  │  └─ BadHttpRequestToValidationHandler.cs
 │     │  ├─ OpenApi/
+│     │  │  ├─ OpenApiExtensions.cs
+│     │  │  └─ Transformers/
+│     │  │     ├─ EnumStringTransformer.cs
+│     │  │     └─ IsoDateOnlyStringTransformer.cs
+│     │  ├─ Serialization/
+│     │  │  └─ EnumParsing.cs
 │     │  └─ Validation/
+│     │     ├─ Attributes/
+│     │     │  ├─ StringAsEnumAttribute.cs
+│     │     │  └─ StringAsIsoDateAttribute.cs
+│     │     ├─ DataAnnotationsValidationFilter.cs
+│     │     └─ EndpointFilterBuilderExtensions.cs
 │     ├─ Program.cs
 │     └─ Sts.Minimal.Api.csproj
 ├─ LICENSE
