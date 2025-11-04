@@ -1,6 +1,7 @@
 ### Get all payments
 GET {{HostAddress}}/payments/query-param
 Accept: application/json, application/problem+json
+Authorization: Bearer {{access_token}}
 
 > {%
     client.test("Request executed successfully. Empty list", function () {

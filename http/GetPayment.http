@@ -1,6 +1,7 @@
 ### Get unexisting payment by ID
 GET {{HostAddress}}/payments/23
 Accept: application/json, application/problem+json
+Authorization: Bearer {{access_token}}
 
 > {%
     client.test("Request executed successfully. Not found", function () {

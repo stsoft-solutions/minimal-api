@@ -37,6 +37,30 @@ public static class OpenApiExtensions
                     Name = "STS Support",
                     Email = "support@stsoft.solutions"
                 };
+
+                // Add Bearer JWT security scheme and requirement
+                const string bearerSchemeName = JwtBearerDefaults.AuthenticationScheme;
+                document.Components ??= new OpenApiComponents();
+                if (!document.Components.SecuritySchemes.ContainsKey(bearerSchemeName))
+                {
+                    document.Components.SecuritySchemes[bearerSchemeName] = new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer",
+                        BearerFormat = "JWT",
+                        Description = "Provide the access token in the format: Bearer {token}"
+                    };
+                }
+
+                var requirement = new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = bearerSchemeName } }] = new List<string>()
+                };
+                if (!document.SecurityRequirements.Any())
+                {
+                    document.SecurityRequirements.Add(requirement);
+                }
+
                 return Task.CompletedTask;
             });
 
