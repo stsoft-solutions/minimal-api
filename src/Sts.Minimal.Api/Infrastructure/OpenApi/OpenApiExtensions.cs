@@ -38,37 +38,20 @@ public static class OpenApiExtensions
                     Email = "support@stsoft.solutions"
                 };
 
-                // Add Bearer JWT security scheme and requirement
-                const string bearerSchemeName = JwtBearerDefaults.AuthenticationScheme;
-                document.Components ??= new OpenApiComponents();
-                if (!document.Components.SecuritySchemes.ContainsKey(bearerSchemeName))
-                {
-                    document.Components.SecuritySchemes[bearerSchemeName] = new OpenApiSecurityScheme
-                    {
-                        Type = SecuritySchemeType.Http,
-                        Scheme = "bearer",
-                        BearerFormat = "JWT",
-                        Description = "Provide the access token in the format: Bearer {token}"
-                    };
-                }
-
-                var requirement = new OpenApiSecurityRequirement
-                {
-                    [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = bearerSchemeName } }] = new List<string>()
-                };
-                if (!document.SecurityRequirements.Any())
-                {
-                    document.SecurityRequirements.Add(requirement);
-                }
-
                 return Task.CompletedTask;
             });
+
+            // Add AddJwtBearerSchemeDocumentTransformer to add JWT Bearer scheme to components
+            options.AddDocumentTransformer<JwtBearerSecuritySchemeTransformer>();
 
             // Add IsoDateOnlyStringTransformer
             options.AddOperationTransformer<IsoDateOnlyStringTransformer>();
 
             // Add EnumStringTransformer to expose enum choices for string-bound enums
             options.AddOperationTransformer<EnumStringTransformer>();
+
+            // Add the JWT Bearer scheme to the operation
+            options.AddOperationTransformer<JwtBearerOperationTransformer>();
         });
 
         // Add API explorer for endpoint metadata
@@ -101,14 +84,8 @@ public static class OpenApiExtensions
         app.Logger.LogInformation("Configuring Scalar API Reference at http://localhost:5239/scalar");
         app.MapScalarApiReference(options =>
         {
-            options.EnabledClients =
-            [
-                ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient
-            ];
-            options.EnabledTargets =
-            [
-                ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell
-            ];
+            options.EnabledClients = [ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient];
+            options.EnabledTargets = [ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell];
             options.Authentication = new ScalarAuthenticationOptions
             {
                 PreferredSecuritySchemes = [JwtBearerDefaults.AuthenticationScheme]

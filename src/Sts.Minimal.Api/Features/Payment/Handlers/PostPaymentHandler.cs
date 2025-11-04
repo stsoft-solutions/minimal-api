@@ -11,9 +11,9 @@ public class PostPaymentHandler
     )
     {
         await Task.Delay(50);
-        
+
         logger.LogInformation("Posting payment: {@Payment}", request);
-        
+
         return TypedResults.Ok(new PostPaymentResponse(Guid.NewGuid()));
     }
 }

@@ -1,7 +1,6 @@
 ### Get unexisting payment by ID
 GET {{HostAddress}}/payments/23
 Accept: application/json, application/problem+json
-Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Not found", function () {
@@ -12,7 +11,6 @@ Authorization: Bearer {{$auth.token("auth-id")}}
 ### Get payment with prohibited ID
 GET {{HostAddress}}/payments/666
 Accept: application/json, application/problem+json
-Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Prohibited ID", function () {
@@ -28,7 +26,6 @@ Authorization: Bearer {{$auth.token("auth-id")}}
 ### Get existing payment by ID
 GET {{HostAddress}}/payments/1
 Accept: application/json, application/problem+json
-Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Payment found", function () {
@@ -42,7 +39,6 @@ Authorization: Bearer {{$auth.token("auth-id")}}
 ### Get payment with out of range ID
 GET {{HostAddress}}/payments/5000
 Accept: application/json, application/problem+json
-Authorization: Bearer {{$auth.token("auth-id")}}
 
 > {%
     client.test("Request executed successfully. Out of range ID", function () {

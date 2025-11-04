@@ -44,7 +44,7 @@ public class GetPaymentHandler
         )
     {
         logger.LogInformation("Fetching payment with PaymentId: {PaymentId}", paymentId);
-        
+
         // Small delay to simulate async operation
         await Task.Delay(50);
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Sts.Minimal.Api.Features.Payment;
 using Sts.Minimal.Api.Infrastructure.Host;
 using Sts.Minimal.Api.Infrastructure.OpenApi;
@@ -18,9 +19,9 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         var cfg = builder.Configuration;
         options.Authority = cfg["Auth:Authority"]; // e.g. http://localhost:8080/realms/sts-realm
         options.RequireHttpsMetadata = false; // dev only
-        options.TokenValidationParameters = new()
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = false // simplify dev with Keycloak public client
+            ValidateAudience = false // simplify dev with a Keycloak public client
         };
     });
 services.AddAuthorization();

@@ -28,6 +28,7 @@ public class GetPaymentsQueryAsParamHandler
     {
         logger.LogInformation("Get Payments request {@Request}", request);
 
-        return Task.FromResult<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>(TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable()));
+        return Task.FromResult<Results<Ok<IEnumerable<GetPaymentsItem>>, ValidationProblem, ProblemHttpResult>>(
+            TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable()));
     }
 }

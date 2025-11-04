@@ -22,6 +22,7 @@ public static class PaymentEndpoints
             .RequireAuthorization();
 
         group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
+            .AllowAnonymous()
             .AddDataAnnotationsValidation()
             .WithName("GetPayment")
             .WithDescription("Retrieves payment information by payment ID.")
