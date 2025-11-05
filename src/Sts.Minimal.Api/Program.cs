@@ -3,6 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using Sts.Minimal.Api.Features.Payment;
 using Sts.Minimal.Api.Infrastructure.Host;
 using Sts.Minimal.Api.Infrastructure.OpenApi;
+using Sts.Minimal.Api.Infrastructure.Auth;
+using System.Security.Claims;
+using System.Text.Json;
 
 // Create host builder with Serilog & OTLP
 var builder = HostAppExtensionsAndFactory.CreateStsHostBuilder(args);
@@ -24,10 +27,17 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         }
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateAudience = builder.Environment.IsDevelopment() ? false : true // Only disable in development
+            ValidateAudience = !builder.Environment.IsDevelopment() // Only disable in development
         };
     });
-services.AddAuthorization();
+
+services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationConstants.Policies.Reader, policy =>
+        policy.RequireAssertion(ctx => HasRole(ctx.User, AuthorizationConstants.Roles.Reader)));
+    options.AddPolicy(AuthorizationConstants.Policies.Writer, policy =>
+        policy.RequireAssertion(ctx => HasRole(ctx.User, AuthorizationConstants.Roles.Writer)));
+});
 
 var app = builder.Build();
 
@@ -47,3 +57,36 @@ app.UseOpenApiInfrastructure();
 app.MapPaymentEndpoints();
 
 app.Run();
+
+static bool HasRole(ClaimsPrincipal user, string role)
+{
+    if (user.IsInRole(role)) return true;
+
+    // Direct 'roles' multi-valued claims
+    var roleClaims = user.FindAll("roles");
+    if (roleClaims.Any(c => string.Equals(c.Value, role, StringComparison.OrdinalIgnoreCase))) return true;
+
+    // Parse realm_access JSON claim: { "roles": ["reader", "writer"] }
+    var realmAccess = user.FindFirst("realm_access")?.Value;
+    if (!string.IsNullOrEmpty(realmAccess))
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(realmAccess);
+            if (doc.RootElement.TryGetProperty("roles", out var rolesEl) && rolesEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var r in rolesEl.EnumerateArray())
+                {
+                    if (r.ValueKind == JsonValueKind.String && string.Equals(r.GetString(), role, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+        }
+        catch
+        {
+            // ignore parsing issues
+        }
+    }
+
+    return false;
+}

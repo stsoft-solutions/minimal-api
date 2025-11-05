@@ -87,7 +87,7 @@ To stop the infrastructure:
 #### Windows PowerShell (runnable)
 ```powershell
 # From repo root (returns to original folder when done)
-Push-Location; Set-Location .\docker; docker compose down; Pop-Location
+Push-Location; Set-Location .\docker; docker compose down --volumes; Pop-Location
 ```
 
 #### Bash (runnable)

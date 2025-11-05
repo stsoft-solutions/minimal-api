@@ -2,7 +2,7 @@
 POST {{HostAddress}}/payments
 Accept: application/json, application/problem+json
 Content-Type: application/json
-Authorization: Bearer {{$auth.token("auth-id")}}
+Authorization: Bearer {{$auth.token("auth-writer")}}
 
 {
   "amount": 90,
@@ -22,7 +22,7 @@ Authorization: Bearer {{$auth.token("auth-id")}}
 POST {{HostAddress}}/payments
 Accept: application/json, application/problem+json
 Content-Type: application/json
-Authorization: Bearer {{$auth.token("auth-id")}}
+Authorization: Bearer {{$auth.token("auth-writer")}}
 
 {
   "amount": 0,
@@ -38,5 +38,23 @@ Authorization: Bearer {{$auth.token("auth-id")}}
         client.assert(response.body.status === 400, "Error code is 400");
         client.assert(response.body.errors.amount[0] === "The value must be between 1 and 100.00", "Amount error message is correct");
         client.assert(response.body.errors["value-date"][0] === "The value '2024-06-35' is not valid for value-date.", "ValueDate error message is correct");
+    });
+%}
+
+### Post payment with wrong role
+POST {{HostAddress}}/payments
+Accept: application/json, application/problem+json
+Content-Type: application/json
+Authorization: Bearer {{$auth.token("auth-reader")}}
+
+{
+  "amount": 90,
+  "currency": "USD",
+  "value-date": "2024-06-30"
+}
+
+> {%
+    client.test("Request executed successfully.", function () {
+        client.assert(response.status === 403, "Response status is 403");
     });
 %}

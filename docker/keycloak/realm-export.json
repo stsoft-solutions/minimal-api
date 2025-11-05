@@ -2,10 +2,42 @@
   "realm": "sts-realm",
   "enabled": true,
   "displayName": "STS Local Realm",
+  "roles": {
+    "realm": [
+      { "name": "reader", "description": "Can read resources" },
+      { "name": "writer", "description": "Can create/update resources" }
+    ]
+  },
   "clients": [
     {
+      "clientId": "sts-api-writer",
+      "name": "STS Minimal API (Writer)",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "writer-secret",
+      "attributes": {}
+    },
+    {
+      "clientId": "sts-api-reader",
+      "name": "STS Minimal API (Reader)",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "reader-secret",
+      "attributes": {}
+    },
+    {
       "clientId": "sts-api",
-      "name": "STS Minimal API",
+      "name": "STS Minimal API (Public UI)",
       "rootUrl": "http://localhost:5239",
       "redirectUris": [
         "http://localhost:5239/*",
@@ -18,9 +50,7 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
-      "attributes": {
-        "pkce.code.challenge.method": "S256"
-      }
+      "attributes": { "pkce.code.challenge.method": "S256" }
     }
   ],
   "users": [
@@ -32,13 +62,25 @@
       "lastName": "User",
       "email": "api-user@example.com",
       "credentials": [
-        {
-          "type": "password",
-          "value": "pwd",
-          "temporary": false
-        }
+        { "type": "password", "value": "pwd", "temporary": false }
       ],
       "realmRoles": ["offline_access", "default-roles-sts-realm"],
+      "clientRoles": {}
+    },
+    {
+      "username": "service-account-sts-api-writer",
+      "enabled": true,
+      "serviceAccountClientId": "sts-api-writer",
+      "emailVerified": true,
+      "realmRoles": ["reader", "writer"],
+      "clientRoles": {}
+    },
+    {
+      "username": "service-account-sts-api-reader",
+      "enabled": true,
+      "serviceAccountClientId": "sts-api-reader",
+      "emailVerified": true,
+      "realmRoles": ["reader"],
       "clientRoles": {}
     }
   ]
