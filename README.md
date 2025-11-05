@@ -33,16 +33,16 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 ### Prerequisites
 
 - .NET SDK 9.0 or later
-- Optional: Docker (for Seq log viewer)
+- Docker Desktop (required for Keycloak; also runs Seq locally)
 
 ### Run the API (Development)
 
+#### Bash (runnable)
 ```bash
-# From repo root
-cd src/Sts.Minimal.Api
-
-dotnet run
+dotnet run --project ./src/Sts.Minimal.Api/Sts.Minimal.Api.csproj
 ```
+
+Note: Authorized endpoints require Keycloak to be running. Start it with the steps in "Start local infrastructure" below.
 
 The API listens by default on:
 
@@ -52,45 +52,63 @@ The API listens by default on:
 
 See `src/Sts.Minimal.Api/Properties/launchSettings.json` to adjust the port and environment.
 
-### Optional: Start Seq for log viewing
+### Start local infrastructure (Keycloak required; Seq optional)
 
-```bash
-# From repo root
-cd docker
+Both services are started from the same Docker Compose file.
 
-docker compose up -d
+#### Windows PowerShell (runnable)
+```powershell
+# From repo root (returns to original folder when done)
+Push-Location; Set-Location .\docker; docker compose up -d; Pop-Location
 ```
 
-- Seq UI: `http://localhost:5340`
-- Seq ingestion endpoint: `http://localhost:5341`
+#### Bash (runnable)
+```bash
+# From repo root (runs in a subshell so your cwd doesn't change)
+(cd ./docker && docker compose up -d)
+```
 
-Serilog is already configured to send logs to Seq at `http://localhost:5341`. If your Seq instance does not require an API key (typical for local), you can remove or override the `apiKey` setting via environment variables or user secrets.
+Note: PowerShell 5.x does not support Bash-style `&&` or subshell parentheses. Use the PowerShell block above when running in Windows PowerShell or PowerShell 7.
 
-### Optional: Start Keycloak (for JWT auth)
-
-The repo includes a ready-to-use Keycloak container and realm for local development.
-
-- Keycloak Admin Console: `http://localhost:8080` (admin/admin)
+Keycloak (required):
+- Admin Console: `http://localhost:8080` (admin/admin)
 - Realm: `sts-realm`
 - Client: `sts-api` (public client)
 - Sample user: `api-user` / `pwd`
 
-The above are brought up by the same `docker compose up -d` command in the `docker` folder.
+Seq (optional):
+- UI: `http://localhost:5340`
+- Ingestion endpoint: `http://localhost:5341`
+
+Serilog is preconfigured to send logs to Seq at `http://localhost:5341`. If your local Seq does not require an API key, you can remove or override the `apiKey` setting via environment variables or user secrets.
+
+To stop the infrastructure:
+
+#### Windows PowerShell (runnable)
+```powershell
+# From repo root (returns to original folder when done)
+Push-Location; Set-Location .\docker; docker compose down; Pop-Location
+```
+
+#### Bash (runnable)
+```bash
+# From repo root (runs in a subshell so your cwd doesn't change)
+(cd ./docker && docker compose down)
+```
 
 ### Obtain an access token
 
 Use the provided HTTP file or curl:
 
 - JetBrains HTTP Client: run `http/Keycloak.Token.http`
-- Curl (bash):
+- Bash:
 
 ```bash
+# Requires jq (macOS: brew install jq; Ubuntu/Debian: sudo apt-get install -y jq)
 TOKEN=$(curl -s -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=sts-api&username=api-user&password=pwd&scope=openid" \
-  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r .access_token)
-
-echo "Token: ${TOKEN:0:20}..."
+  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r '.access_token'); export TOKEN; printf "Token: %.20s...\n" "$TOKEN"
 ```
 
 Then call the API with `Authorization: Bearer <token>`.
@@ -133,27 +151,22 @@ The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` already i
 Examples (curl):
 
 ```bash
-# Assume TOKEN environment variable contains a valid access token (see Obtain an access token)
+# Assume $TOKEN contains a valid access token (see Obtain an access token)
 
 # Get a payment (expected 404 if not found)
-curl -i "http://localhost:5239/payments/23" \
-  -H "Accept: application/json, application/problem+json"
+curl -i "http://localhost:5239/payments/23" -H "Accept: application/json, application/problem+json"
 
 # Prohibited ID example (expected 400 with problem+json)
-curl -i "http://localhost:5239/payments/666" \
-  -H "Accept: application/json, application/problem+json"
+curl -i "http://localhost:5239/payments/666" -H "Accept: application/json, application/problem+json"
 
 # Successful read (example ID 1)
-curl -s "http://localhost:5239/payments/1" | jq .
+curl -s "http://localhost:5239/payments/1"
 
 # Query endpoint (individual params)
-curl -s "http://localhost:5239/payments/query?paymentId=10&valueDateString=2025-01-01&status=FINISHED&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a" \
-  -H "Authorization: Bearer $TOKEN"
+curl -s "http://localhost:5239/payments/query?paymentId=10&valueDateString=2025-01-01&status=FINISHED&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a" -H "Authorization: Bearer $TOKEN"
 
 # Binding error example for query GUID (expected 400 with problem+json)
-curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" \
-  -H "Accept: application/json, application/problem+json" \
-  -H "Authorization: Bearer $TOKEN"
+curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" -H "Accept: application/json, application/problem+json" -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
@@ -183,7 +196,6 @@ Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.
 Tracing and metrics via OTLP are enabled only when an OTLP endpoint is configured.
 
 - Set environment variable `OTEL_EXPORTER_OTLP_ENDPOINT` to a valid URL, e.g.:
-  - Windows PowerShell: `setx OTEL_EXPORTER_OTLP_ENDPOINT "http://localhost:4317"`
   - Bash: `export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317`
 - The development profile sets: `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:17011` in `Properties/launchSettings.json`. Change it to your collector address or remove it to disable OTLP.
 - When not set or invalid, the app starts normally and logs: "OTLP endpoint not configured".
@@ -243,7 +255,7 @@ minimal-api/
 ## Development
 
 - Target framework: `net9.0`
-- Local run: `dotnet run` from `src/Sts.Minimal.Api`
+- Local run: `dotnet run --project src/Sts.Minimal.Api/Sts.Minimal.Api.csproj`
 - HTTP logging middleware and Serilog request logging are enabled by default.
 
 ### Tests
