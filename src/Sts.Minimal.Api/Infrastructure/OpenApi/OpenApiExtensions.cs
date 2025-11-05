@@ -84,7 +84,8 @@ public static class OpenApiExtensions
         app.Logger.LogInformation("Configuring Scalar API Reference at http://localhost:5239/scalar");
         app.MapScalarApiReference(options =>
         {
-            options.EnabledClients = [ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient];
+            options.EnabledClients =
+                [ScalarClient.RestSharp, ScalarClient.Curl, ScalarClient.Fetch, ScalarClient.HttpClient];
             options.EnabledTargets = [ScalarTarget.CSharp, ScalarTarget.JavaScript, ScalarTarget.Shell];
             options.Authentication = new ScalarAuthenticationOptions
             {

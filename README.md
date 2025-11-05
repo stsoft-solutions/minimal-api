@@ -73,8 +73,11 @@ Note: PowerShell 5.x does not support Bash-style `&&` or subshell parentheses. U
 Keycloak (required):
 - Admin Console: `http://localhost:8080` (admin/admin)
 - Realm: `sts-realm`
-- Client: `sts-api` (public client)
-- Sample user: `api-user` / `pwd`
+- Clients:
+  - `sts-api` (public client) — for password grant samples with user credentials
+  - `sts-api-writer` (confidential) — client credentials, has roles: `writer`, `reader`
+  - `sts-api-reader` (confidential) — client credentials, has role: `reader`
+- Sample user: `api-user` / `pwd` (has roles: `reader`, `writer`)
 
 Seq (optional):
 - UI: `http://localhost:5340`
@@ -98,17 +101,35 @@ Push-Location; Set-Location .\docker; docker compose down --volumes; Pop-Locatio
 
 ### Obtain an access token
 
-Use the provided HTTP file or curl:
+You can use Client Credentials (recommended for service-to-service) or Password Grant (sample user).
 
-- JetBrains HTTP Client: run `http/Keycloak.Token.http`
-- Bash:
+- JetBrains HTTP Client:
+  - Client Credentials: run `http/Keycloak.ClientCredentials.http` and pick writer/reader as needed
+  - Password Grant: run `http/Keycloak.Token.http` (uses `api-user` / `pwd`)
+- Curl examples (requires `jq`):
 
+Writer (has roles reader+writer):
 ```bash
-# Requires jq (macOS: brew install jq; Ubuntu/Debian: sudo apt-get install -y jq)
+TOKEN=$(curl -s -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=sts-api-writer&client_secret=writer-secret" \
+  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r '.access_token'); export TOKEN; printf "Writer token: %.20s...\n" "$TOKEN"
+```
+
+Reader only:
+```bash
+TOKEN=$(curl -s -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=sts-api-reader&client_secret=reader-secret" \
+  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r '.access_token'); export TOKEN; printf "Reader token: %.20s...\n" "$TOKEN"
+```
+
+Optional — Password grant (sample user):
+```bash
 TOKEN=$(curl -s -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password&client_id=sts-api&username=api-user&password=pwd&scope=openid" \
-  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r '.access_token'); export TOKEN; printf "Token: %.20s...\n" "$TOKEN"
+  http://localhost:8080/realms/sts-realm/protocol/openid-connect/token | jq -r '.access_token'); export TOKEN; printf "User token: %.20s...\n" "$TOKEN"
 ```
 
 Then call the API with `Authorization: Bearer <token>`.
@@ -125,13 +146,13 @@ Most endpoints require Authorization with a Bearer JWT (Keycloak). Use the acces
   - 200: `GetPaymentResponse`
   - 400: Validation problem
   - 404: Not found
-- GET `/payments/query` — Query payments via individual query params (Experimental)
+- GET `/payments/query` — Query payments via individual query params (Experimental, requires role: `reader`)
   - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: YYYY-MM-DD`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
   - 200: `IEnumerable<GetPaymentsItem>`
-- GET `/payments/query-param` — Query using a parameter object (Stable)
+- GET `/payments/query-param` — Query using a parameter object (Stable, requires role: `reader`)
   - Query params (kebab-case): `payment-id`, `value-date` (YYYY-MM-DD), `status`
   - 200: `IEnumerable<GetPaymentsItem>`
-- POST `/payments` — Create/process a new payment (Stable)
+- POST `/payments` — Create/process a new payment (Stable, requires role: `writer`)
   - 200: `PostPaymentResponse`
   - 400: Validation problem
 
@@ -146,7 +167,12 @@ Ready‑made request files are available under `http/`. You can run them with:
 - JetBrains Rider / IntelliJ HTTP Client (built‑in)
 - VS Code with the REST Client extension
 
-The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` already includes OAuth2 settings for Keycloak (client `sts-api`, user `api-user`). Use the `dev` environment to automatically acquire tokens via `{{$auth.token("auth-id")}}` in the sample requests.
+The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` includes three OAuth2 profiles under the `dev` environment:
+- `auth-writer` — Client Credentials with `sts-api-writer` (roles: writer, reader)
+- `auth-reader` — Client Credentials with `sts-api-reader` (role: reader)
+- `auth-id` — Password grant with `sts-api` (user `api-user`)
+
+Sample requests use `{{$auth.token("auth-writer")}}` for write operations and `{{$auth.token("auth-reader")}}` for read-only cases.
 
 Examples (curl):
 

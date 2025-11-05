@@ -1,8 +1,8 @@
 ﻿using Scalar.AspNetCore;
 using Sts.Minimal.Api.Features.Payment.Handlers;
 using Sts.Minimal.Api.Features.Payment.Model;
-using Sts.Minimal.Api.Infrastructure.Validation;
 using Sts.Minimal.Api.Infrastructure.Auth;
+using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
@@ -57,7 +57,7 @@ public static class PaymentEndpoints
 
         // POST endpoint requires 'writer' role
         group.MapPost("/", PostPaymentHandler.HandleAsync)
-            .RequireAuthorization(Sts.Minimal.Api.Infrastructure.Auth.AuthorizationConstants.Policies.Writer)
+            .RequireAuthorization(AuthorizationConstants.Policies.Writer)
             .AddDataAnnotationsValidation()
             .WithName("PostPayment")
             .WithDescription("Processes a new payment. Requires role 'writer'.")

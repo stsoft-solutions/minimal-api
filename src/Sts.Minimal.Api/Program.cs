@@ -1,11 +1,11 @@
+using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Sts.Minimal.Api.Features.Payment;
+using Sts.Minimal.Api.Infrastructure.Auth;
 using Sts.Minimal.Api.Infrastructure.Host;
 using Sts.Minimal.Api.Infrastructure.OpenApi;
-using Sts.Minimal.Api.Infrastructure.Auth;
-using System.Security.Claims;
-using System.Text.Json;
 
 // Create host builder with Serilog & OTLP
 var builder = HostAppExtensionsAndFactory.CreateStsHostBuilder(args);
@@ -21,10 +21,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         var cfg = builder.Configuration;
         options.Authority = cfg["Auth:Authority"]; // e.g. http://localhost:8080/realms/sts-realm
-        if (builder.Environment.IsDevelopment())
-        {
-            options.RequireHttpsMetadata = false; // dev only
-        }
+        if (builder.Environment.IsDevelopment()) options.RequireHttpsMetadata = false; // dev only
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = !builder.Environment.IsDevelopment() // Only disable in development
@@ -69,24 +66,19 @@ static bool HasRole(ClaimsPrincipal user, string role)
     // Parse realm_access JSON claim: { "roles": ["reader", "writer"] }
     var realmAccess = user.FindFirst("realm_access")?.Value;
     if (!string.IsNullOrEmpty(realmAccess))
-    {
         try
         {
             using var doc = JsonDocument.Parse(realmAccess);
             if (doc.RootElement.TryGetProperty("roles", out var rolesEl) && rolesEl.ValueKind == JsonValueKind.Array)
-            {
                 foreach (var r in rolesEl.EnumerateArray())
-                {
-                    if (r.ValueKind == JsonValueKind.String && string.Equals(r.GetString(), role, StringComparison.OrdinalIgnoreCase))
+                    if (r.ValueKind == JsonValueKind.String &&
+                        string.Equals(r.GetString(), role, StringComparison.OrdinalIgnoreCase))
                         return true;
-                }
-            }
         }
         catch
         {
             // ignore parsing issues
         }
-    }
 
     return false;
 }

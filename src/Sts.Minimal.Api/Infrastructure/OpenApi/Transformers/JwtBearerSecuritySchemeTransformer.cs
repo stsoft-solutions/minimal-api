@@ -10,7 +10,8 @@ namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 /// </summary>
 public sealed class JwtBearerSecuritySchemeTransformer : IOpenApiDocumentTransformer
 {
-    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context,
+        CancellationToken cancellationToken)
     {
         // Do nothing if already present
         document.Components ??= new OpenApiComponents();

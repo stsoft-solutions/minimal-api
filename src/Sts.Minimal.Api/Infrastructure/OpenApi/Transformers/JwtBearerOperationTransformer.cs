@@ -15,7 +15,8 @@ namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 /// </remarks>
 public sealed class JwtBearerOperationTransformer : IOpenApiOperationTransformer
 {
-    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
+        CancellationToken cancellationToken)
     {
         // Collect endpoint metadata
         var metadata = ((IEnumerable<object>?)context.Description.ActionDescriptor?.EndpointMetadata
