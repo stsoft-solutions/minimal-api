@@ -216,53 +216,26 @@ Common messages include:
 ---
 
 ## Project structure
-
 ```
 minimal-api/
-├─ docker/
-│  └─ docker-compose.yml                # Seq log viewer
-├─ http/                                 # runnable HTTP request samples
+├─ docker/                       # Docker resources for local tooling (Seq, Keycloak)
+│  └─ keycloak/                  # Local realm export and setup assets
+├─ http/                         # Runnable HTTP request samples and environments
 ├─ src/
-│  └─ Sts.Minimal.Api/
-│     ├─ Features/
-│     │  └─ Payment/
-│     │     ├─ PaymentEndpoints.cs
-│     │     ├─ Handlers/
-│     │     │  ├─ GetPaymentHandler.cs
-│     │     │  ├─ GetPaymentsQueryHandler.cs
-│     │     │  ├─ GetPaymentsQueryAsParamHandler.cs
-│     │     │  └─ PostPaymentHandler.cs
-│     │     └─ Model/
-│     │        ├─ GetPaymentResponse.cs
-│     │        ├─ GetPaymentsItem.cs
-│     │        ├─ GetPaymentsRequest.cs
-│     │        ├─ PaymentStatus.cs
-│     │        ├─ PostPaymentRequest.cs
-│     │        └─ PostPaymentResponse.cs
-│     ├─ Infrastructure/
-│     │  ├─ Host/
-│     │  │  └─ HostAppExtensionsAndFactory.cs
-│     │  ├─ Middleware/
-│     │  │  └─ BadHttpRequestToValidationHandler.cs
-│     │  ├─ OpenApi/
-│     │  │  ├─ OpenApiExtensions.cs
-│     │  │  └─ Transformers/
-│     │  │     ├─ EnumStringTransformer.cs
-│     │  │     ├─ IsoDateOnlyStringTransformer.cs
-│     │  │     ├─ JwtBearerOperationTransformer.cs
-│     │  │     └─ JwtBearerSecuritySchemeTransformer.cs
-│     │  ├─ Serialization/
-│     │  │  └─ EnumParsing.cs
-│     │  └─ Validation/
-│     │     ├─ Attributes/
-│     │     │  ├─ StringAsEnumAttribute.cs
-│     │     │  └─ StringAsIsoDateAttribute.cs
-│     │     ├─ DataAnnotationsValidationFilter.cs
-│     │     └─ EndpointFilterBuilderExtensions.cs
-│     ├─ Program.cs
-│     └─ Sts.Minimal.Api.csproj
-├─ LICENSE
-└─ README.md
+│  └─ Sts.Minimal.Api/          # Main Minimal API project
+│     ├─ Features/              # Feature‑oriented endpoints and domain models
+│     │  └─ Payment/            # Payment feature (endpoints, handlers, models)
+│     │     ├─ Handlers/        # Endpoint handlers for payment operations
+│     │     └─ Model/           # Request/response DTOs and enums
+│     ├─ Infrastructure/        # Cross‑cutting concerns and utilities
+│     │  ├─ Host/               # Host configuration and Serilog setup
+│     │  ├─ Middleware/         # Global exception/validation middleware
+│     │  ├─ OpenApi/            # OpenAPI + Scalar configuration and transformers
+│     │  │  └─ Transformers/    # OpenAPI/Scalar customization helpers
+│     │  ├─ Serialization/      # Helpers for parsing/formatting types
+│     │  └─ Validation/         # Data annotations and endpoint filters
+│     │     └─ Attributes/      # Custom validation attributes
+│     ├─ Properties/            # Launch profiles and environment settings
 ```
 
 ---
