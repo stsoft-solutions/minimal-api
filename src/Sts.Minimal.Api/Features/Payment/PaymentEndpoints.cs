@@ -20,7 +20,7 @@ public static class PaymentEndpoints
     {
         var group = routes.MapGroup("/payments")
             .WithTags("Payment")
-            .RequireAuthorization();
+            .RequireAuthorization(AuthorizationConstants.Policies.Reader);
 
         // GET by id should be public (anonymous)
         group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
@@ -36,7 +36,6 @@ public static class PaymentEndpoints
 
         // GET endpoints require 'reader' role
         group.MapGet("/query", GetPaymentsQueryHandler.HandleAsync)
-            .RequireAuthorization(AuthorizationConstants.Policies.Reader)
             .AddDataAnnotationsValidation()
             .WithName("GetPaymentsQuery")
             .WithDescription("Retrieves payments information using query parameters. Requires role 'reader'.")
@@ -46,7 +45,6 @@ public static class PaymentEndpoints
             .Experimental();
 
         group.MapGet("/query-param", GetPaymentsQueryAsParamHandler.HandleAsync)
-            .RequireAuthorization(AuthorizationConstants.Policies.Reader)
             .AddDataAnnotationsValidation()
             .WithName("GetPaymentsQueryAsParam")
             .WithDescription("Retrieves payments information using a query parameter object. Requires role 'reader'.")
@@ -65,7 +63,6 @@ public static class PaymentEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
-
 
         return group;
     }

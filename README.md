@@ -140,7 +140,12 @@ Then call the API with `Authorization: Bearer <token>`.
 
 Base path: `/payments`
 
-Most endpoints require Authorization with a Bearer JWT (Keycloak). Use the access token from the steps above. The GET `/payments/{paymentId:int}` endpoint is intentionally left anonymous for demonstration purposes.
+Authorization model:
+- The `/payments` route group enforces the `reader` policy by default (Bearer JWT via Keycloak required).
+- Exception 1: GET `/payments/{paymentId:int}` is explicitly marked `AllowAnonymous` for demo purposes.
+- Exception 2: POST `/payments` elevates to the `writer` policy (requires role `writer`).
+
+Use the access token from the steps above where authorization is required.
 
 - GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable, Anonymous)
   - 200: `GetPaymentResponse`
