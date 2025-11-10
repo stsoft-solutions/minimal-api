@@ -71,6 +71,9 @@ public class GetPaymentHandler
                     ReferenceId = Guid.NewGuid(),
                     ValueDate = DateOnly.FromDateTime(DateTime.UtcNow)
                 });
+
+            case 10:
+                throw new InvalidOperationException("Simulated exception for testing purposes.");
             default:
                 return TypedResults.NotFound();
         }

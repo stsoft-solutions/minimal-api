@@ -18,6 +18,13 @@ namespace Sts.Minimal.Api.Infrastructure.Middleware;
 /// <seealso cref="IExceptionHandler" />
 public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandler
 {
+    private readonly IProblemDetailsService _problemDetailsService;
+
+    public BadHttpRequestToValidationHandler(IProblemDetailsService problemDetailsService)
+    {
+        _problemDetailsService = problemDetailsService ?? throw new ArgumentNullException(nameof(problemDetailsService));
+    }
+
     /// <summary>
     /// Attempts to handle a <see cref="BadHttpRequestException" /> by generating a validation error response.
     /// </summary>
@@ -41,11 +48,12 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         var (name, value, typeHintRaw) = BinderMessageParser.Parse(badHttpRequestException.Message);
         var typeHint = BinderMessageParser.UnwrapNullable(typeHintRaw);
 
-        var pds = context.RequestServices.GetRequiredService<IProblemDetailsService>();
-        var vpd = new ValidationProblemDetails(new Dictionary<string, string[]>
-        {
-            [name ?? "referenceId"] = [FriendlyError(typeHint, value)]
-        })
+        var vpd = new ValidationProblemDetails(
+            new Dictionary<string, string[]>
+            {
+                [name ?? "unknownParameter"] = [FriendlyError(typeHint, value)]
+            }
+        )
         {
             Status = StatusCodes.Status400BadRequest,
             Title = "One or more parameters are invalid."
@@ -53,8 +61,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
         // Explicitly set the HTTP response status to 400 to avoid the default 500 from the exception handler
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-
-        await pds.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = vpd });
+        await _problemDetailsService.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = vpd });
         return true; // ← tells middleware it's handled (no error log)
     }
 
