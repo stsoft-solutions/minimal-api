@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
+
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
@@ -10,15 +11,15 @@ namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 /// </summary>
 public sealed class JwtBearerSecuritySchemeTransformer : IOpenApiDocumentTransformer
 {
-    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context,
-        CancellationToken cancellationToken)
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         // Do nothing if already present
         document.Components ??= new OpenApiComponents();
         if (document.Components.SecuritySchemes?.ContainsKey(JwtBearerDefaults.AuthenticationScheme) == true)
             return Task.CompletedTask;
 
-        document.Components.SecuritySchemes ??= new Dictionary<string, OpenApiSecurityScheme>();
+        if (document.Components.SecuritySchemes == null)
+            document.Components.SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>();
 
         document.Components.SecuritySchemes[JwtBearerDefaults.AuthenticationScheme] = new OpenApiSecurityScheme
         {
