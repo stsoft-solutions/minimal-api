@@ -1,7 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.OpenApi;
-using Microsoft.OpenApi.Any;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
 
@@ -11,28 +10,38 @@ public sealed class IsoDateOnlyStringTransformer : IOpenApiOperationTransformer
 {
     public Task TransformAsync(OpenApiOperation op, OpenApiOperationTransformerContext ctx, CancellationToken _)
     {
+        if (op.Parameters is null || op.Parameters.Count == 0)
+            return Task.CompletedTask;
+
         foreach (var pd in ctx.Description.ParameterDescriptions)
         {
-            // 1) Get the hidden ParameterInfo (e.g., PropertyAsParameterInfo) via reflection
             var pi = TryGetParameterInfo(pd);
             if (pi is null) continue;
+            if (pi.GetCustomAttribute<StringAsIsoDateAttribute>() is null) continue;
 
-            // 2) Check for your custom attribute
-            if (pi.GetCustomAttribute<StringAsIsoDateAttribute>() is null)
-                continue;
+            var existing = op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
+            if (existing is null) continue;
 
-            // 3) Find and modify the OpenAPI parameter
-            var oap = op.Parameters?.FirstOrDefault(p =>
-                string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
-            if (oap is null) continue;
+            var newSchema = new OpenApiSchema
+            {
+                Type = JsonSchemaType.String,
+                Description = "ISO date (yyyy-MM-dd)"
+            };
 
-            oap.Schema ??= new OpenApiSchema();
-            oap.Schema.Type = "string";
-            oap.Schema.Format = "date"; // yyyy-MM-dd
-            oap.Extensions["x-iso-date-only"] = new OpenApiBoolean(true);
+            var replacement = new OpenApiParameter
+            {
+                Name = existing.Name,
+                Description = existing.Description ?? "ISO date (yyyy-MM-dd)",
+                Required = existing.Required,
+                In = existing.In,
+                Deprecated = existing.Deprecated,
+                AllowEmptyValue = existing.AllowEmptyValue,
+                Schema = newSchema
+            };
 
-            if (string.IsNullOrWhiteSpace(oap.Description))
-                oap.Description = "ISO date (yyyy-MM-dd)";
+            var index = op.Parameters.IndexOf(existing);
+            if (index >= 0)
+                op.Parameters[index] = replacement;
         }
 
         return Task.CompletedTask;
@@ -41,9 +50,6 @@ public sealed class IsoDateOnlyStringTransformer : IOpenApiOperationTransformer
     private static ParameterInfo? TryGetParameterInfo(ApiParameterDescription pd)
     {
         var desc = pd.ParameterDescriptor;
-
-        // Most concrete descriptors (Minimal API / MVC) expose a public ParameterInfo
-        // We fetch it reflectively so you don't need to reference specific descriptor types.
         var prop = desc.GetType().GetProperty("ParameterInfo", BindingFlags.Instance | BindingFlags.Public);
         return prop?.GetValue(desc) as ParameterInfo;
     }

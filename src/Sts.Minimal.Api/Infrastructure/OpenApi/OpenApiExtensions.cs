@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi;
-using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using Sts.Minimal.Api.Infrastructure.Middleware;
 using Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
