@@ -1,6 +1,6 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Sts.Minimal.Api.Infrastructure.Validation.Attributes;
