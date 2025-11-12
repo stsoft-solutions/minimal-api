@@ -57,8 +57,9 @@ public static class OpenApiExtensions
         services.AddEndpointsApiExplorer();
 
         // Add Problem Details middleware for standardized error responses
+        services.AddValidation();
         services.AddProblemDetails();
-        services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
+        //services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
 
         return services;
     }
