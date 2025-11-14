@@ -54,11 +54,11 @@ GET {{HostAddress}}/payments/10
 Accept: application/json, application/problem+json
 
 > {%
-    client.test("Request executed successfully. Prohibited ID", function () {
-        client.assert(response.status === 400, "Response status is 400");
+    client.test("Request executed. Execution exception", function () {
+        client.assert(response.status === 500, "Response status is 500");
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
-        client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.paymentId[0] === "Payment ID cannot be 666", "Error message is correct");
+        client.assert(response.body.status === 500, "Error code is 500");
+        client.assert(response.body.title === "An error occurred while processing your request.", "Error message is correct");
     });
 %}

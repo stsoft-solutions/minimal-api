@@ -25,7 +25,7 @@ public static class PaymentEndpoints
         // GET by id should be public (anonymous)
         group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
             .AllowAnonymous()
-            .AddDataAnnotationsValidation()
+            //.AddDataAnnotationsValidation()
             .WithName("GetPayment")
             .WithDescription("Retrieves payment information by payment ID.")
             .Produces<GetPaymentResponse>()
@@ -36,7 +36,7 @@ public static class PaymentEndpoints
 
         // GET endpoints require 'reader' role
         group.MapGet("/query", GetPaymentsQueryHandler.HandleAsync)
-            .AddDataAnnotationsValidation()
+            //.AddDataAnnotationsValidation()
             .WithName("GetPaymentsQuery")
             .WithDescription("Retrieves payments information using query parameters. Requires role 'reader'.")
             .Produces<GetPaymentsItem>()
@@ -45,7 +45,7 @@ public static class PaymentEndpoints
             .Experimental();
 
         group.MapGet("/query-param", GetPaymentsQueryAsParamHandler.HandleAsync)
-            .AddDataAnnotationsValidation()
+            //.AddDataAnnotationsValidation()
             .WithName("GetPaymentsQueryAsParam")
             .WithDescription("Retrieves payments information using a query parameter object. Requires role 'reader'.")
             .Produces<GetPaymentsItem>()
@@ -56,7 +56,7 @@ public static class PaymentEndpoints
         // POST endpoint requires 'writer' role
         group.MapPost("/", PostPaymentHandler.HandleAsync)
             .RequireAuthorization(AuthorizationConstants.Policies.Writer)
-            .AddDataAnnotationsValidation()
+            //.AddDataAnnotationsValidation()
             .WithName("PostPayment")
             .WithDescription("Processes a new payment. Requires role 'writer'.")
             .Produces<PostPaymentResponse>()
