@@ -151,28 +151,25 @@ public static class HostAppExtensionsAndFactory
 
         // Prefer host integration to manage lifetime and disposal
         builder.Host.UseSerilog(logger, true);
-
-        // Add HTTP logging middleware
-        builder.Services.AddHttpLogging();
     }
 
     public static IApplicationBuilder UseStsHost(this IApplicationBuilder app)
     {
         // Configure logging middleware
-        app.UseSerilogRequestLogging(options =>
-        {
-            options.IncludeQueryInRequestPath = true;
-
-            // Emit debug-level events instead of the defaults
-            options.GetLevel = (httpContext, elapsed, ex) => LogEventLevel.Debug;
-
-            // Attach additional properties to the request completion event
-            options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
-            {
-                diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
-                diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
-            };
-        });
+        // app.UseSerilogRequestLogging(options =>
+        // {
+        //     options.IncludeQueryInRequestPath = true;
+        //
+        //     // Emit debug-level events instead of the defaults
+        //     options.GetLevel = (httpContext, elapsed, ex) => LogEventLevel.Debug;
+        //
+        //     // Attach additional properties to the request completion event
+        //     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        //     {
+        //         diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
+        //         diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        //     };
+        // });
 
         return app;
     }

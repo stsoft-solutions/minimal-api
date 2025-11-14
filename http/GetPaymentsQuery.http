@@ -117,3 +117,18 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
         client.assert(response.body.errors.referenceId[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
     });
 %}
+
+### Value date
+GET {{HostAddress}}/payments/query?valueDate=2023-12-31
+Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-reader")}}
+
+> {%
+    client.test("Value date", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.referenceId[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
+    });
+%}

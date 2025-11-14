@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Sts.Minimal.Api.Infrastructure.Middleware;
@@ -21,7 +22,7 @@ public static class OpenApiExtensions
         // Add OpenAPI services
         services.AddOpenApi(options =>
         {
-            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
 
             // Add Scalar transformers
             options.AddScalarTransformers();
@@ -59,6 +60,15 @@ public static class OpenApiExtensions
         // Add Problem Details middleware for standardized error responses
         services.AddValidation();
         services.AddProblemDetails();
+
+        // Add HTTP logging
+        services.AddHttpLogging(options =>
+        {
+            options.CombineLogs = false;
+            options.LoggingFields = HttpLoggingFields.None;
+            options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders | HttpLoggingFields.ResponsePropertiesAndHeaders| HttpLoggingFields.Duration | HttpLoggingFields.RequestBody | HttpLoggingFields.ResponseBody;
+        });
+
         //services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
 
         return services;
@@ -71,6 +81,8 @@ public static class OpenApiExtensions
     /// <returns>The WebApplication instance with OpenAPI middleware configured.</returns>
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
+        app.UseHttpLogging();
+
         // ---1 Then the framework-wide exception handler for all other exceptions ---
         app.UseExceptionHandler(); // handles everything else (NullReferenceException, etc.)
 

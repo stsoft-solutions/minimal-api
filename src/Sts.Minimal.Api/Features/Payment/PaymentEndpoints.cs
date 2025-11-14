@@ -2,7 +2,6 @@
 using Sts.Minimal.Api.Features.Payment.Handlers;
 using Sts.Minimal.Api.Features.Payment.Model;
 using Sts.Minimal.Api.Infrastructure.Auth;
-using Sts.Minimal.Api.Infrastructure.Validation;
 
 namespace Sts.Minimal.Api.Features.Payment;
 
@@ -20,48 +19,60 @@ public static class PaymentEndpoints
     {
         var group = routes.MapGroup("/payments")
             .WithTags("Payment")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .RequireAuthorization(AuthorizationConstants.Policies.Reader);
 
         // GET by id should be public (anonymous)
         group.MapGet("/{paymentId:int}", GetPaymentHandler.HandleAsync)
             .AllowAnonymous()
-            //.AddDataAnnotationsValidation()
             .WithName("GetPayment")
             .WithDescription("Retrieves payment information by payment ID.")
+            .Produces<GetPaymentResponse>()
+            .Produces(StatusCodes.Status404NotFound)
+            .Stable();
+
+        // GET by referenceId should be public (anonymous)
+        group.MapGet("/by-reference/{referenceId:guid}", GetPaymentByReferenceHandler.HandleAsync)
+            .AllowAnonymous()
+            .WithName("GetPaymentByReference")
+            .WithDescription("Retrieves payment information by reference ID.")
             .Produces<GetPaymentResponse>()
             .Produces(StatusCodes.Status404NotFound)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
-
+        
+        // GET by date should be public (anonymous)
+        group.MapGet("/by-date/{date}", GetPaymentByDateHandler.HandleAsync)
+            .AllowAnonymous()
+            .WithName("GetPaymentByDate")
+            .WithDescription("Retrieves payment information by payment date.")
+            .Produces<GetPaymentResponse>()
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .Stable();
+        
         // GET endpoints require 'reader' role
         group.MapGet("/query", GetPaymentsQueryHandler.HandleAsync)
-            //.AddDataAnnotationsValidation()
             .WithName("GetPaymentsQuery")
             .WithDescription("Retrieves payments information using query parameters. Requires role 'reader'.")
             .Produces<GetPaymentsItem>()
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Experimental();
 
         group.MapGet("/query-param", GetPaymentsQueryAsParamHandler.HandleAsync)
-            //.AddDataAnnotationsValidation()
             .WithName("GetPaymentsQueryAsParam")
             .WithDescription("Retrieves payments information using a query parameter object. Requires role 'reader'.")
             .Produces<GetPaymentsItem>()
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
         // POST endpoint requires 'writer' role
         group.MapPost("/", PostPaymentHandler.HandleAsync)
             .RequireAuthorization(AuthorizationConstants.Policies.Writer)
-            //.AddDataAnnotationsValidation()
             .WithName("PostPayment")
             .WithDescription("Processes a new payment. Requires role 'writer'.")
             .Produces<PostPaymentResponse>()
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Stable();
 
         return group;
