@@ -1,6 +1,5 @@
-﻿using System.Text.RegularExpressions;
-using System.Reflection;
-using Microsoft.AspNetCore.Routing;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -72,7 +71,7 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
     /// <summary>
     /// Maps a CLR handler parameter name to its corresponding query parameter name
-    /// as exposed via the <see cref="FromQueryAttribute"/> Name property.
+    /// as exposed via the <see cref="FromQueryAttribute" /> Name property.
     /// Falls back to the original name if mapping is unavailable.
     /// </summary>
     private static string? MapToQueryParameterName(HttpContext httpContext, string? originalName)
@@ -88,22 +87,21 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             // and then try to resolve the FromQuery(Name) from its parameter metadata.
             try
             {
-                var dataSource = httpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Routing.EndpointDataSource)) as Microsoft.AspNetCore.Routing.EndpointDataSource;
+                var dataSource = httpContext.RequestServices.GetService(typeof(EndpointDataSource)) as EndpointDataSource;
                 var httpMethod = httpContext.Request.Method;
                 if (dataSource is not null)
-                {
                     foreach (var ep in dataSource.Endpoints)
                     {
-                        var methodMeta = ep.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>();
-                        if (methodMeta is not null && methodMeta.HttpMethods is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                        var methodMeta = ep.Metadata.GetMetadata<HttpMethodMetadata>();
+                        if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
                             continue; // different HTTP method
 
                         // Try MethodInfo path first
-                        var mi = ep.Metadata.GetMetadata<MethodInfo>()
-                                 ?? (ep as Microsoft.AspNetCore.Routing.RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+                        var mi = ep.Metadata.GetMetadata<MethodInfo>() ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
                         if (mi is not null)
                         {
-                            var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                            var p = mi.GetParameters()
+                                .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
                             if (p is not null)
                             {
                                 var fq = p.GetCustomAttribute<FromQueryAttribute>();
@@ -116,27 +114,20 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                         try
                         {
                             var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
-                            if (parameters is not null)
-                            {
-                                var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                                if (p2 is not null)
-                                {
-                                    var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
-                                    if (fq2 is { Name: { Length: > 0 } customName2 })
-                                        return customName2;
-                                }
-                            }
+                            var p2 = parameters.FirstOrDefault(p =>
+                                string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                            var fq2 = p2?.GetCustomAttribute<FromQueryAttribute>();
+                            if (fq2 is { Name: { Length: > 0 } customName2 }) return customName2;
                         }
                         catch
                         {
                             // ignore
                         }
                     }
-                }
             }
             catch
             {
-                // ignore and fall back to original name
+                // ignore and fall back to the original name
             }
 
             return originalName;
@@ -154,12 +145,9 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                 .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
             if (param is not null)
             {
-                // Look for FromQuery attribute and prefer its Name when set
+                // Look for the FromQuery attribute and prefer its Name when set
                 var fromQuery = param.GetCustomAttribute<FromQueryAttribute>();
-                if (fromQuery is { Name: { Length: > 0 } custom })
-                {
-                    return custom;
-                }
+                if (fromQuery is { Name: { Length: > 0 } custom }) return custom;
             }
         }
 
@@ -167,17 +155,11 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         try
         {
             var parameters = endpoint.Metadata.GetOrderedMetadata<ParameterInfo>();
-            if (parameters is not null)
+            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            if (p2 is not null)
             {
-                var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                if (p2 is not null)
-                {
-                    var fromQuery2 = p2.GetCustomAttribute<FromQueryAttribute>();
-                    if (fromQuery2 is { Name: { Length: > 0 } custom2 })
-                    {
-                        return custom2;
-                    }
-                }
+                var fromQuery2 = p2.GetCustomAttribute<FromQueryAttribute>();
+                if (fromQuery2 is { Name: { Length: > 0 } custom2 }) return custom2;
             }
         }
         catch
@@ -188,21 +170,21 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         // Last chance: if the current endpoint didn't help, try a limited scan over EndpointDataSource
         try
         {
-            var dataSource = httpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Routing.EndpointDataSource)) as Microsoft.AspNetCore.Routing.EndpointDataSource;
+            var dataSource = httpContext.RequestServices.GetService(typeof(EndpointDataSource)) as EndpointDataSource;
             var httpMethod = httpContext.Request.Method;
             if (dataSource is not null)
-            {
                 foreach (var ep in dataSource.Endpoints)
                 {
-                    var methodMeta = ep.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>();
-                    if (methodMeta is not null && methodMeta.HttpMethods is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                    var methodMeta = ep.Metadata.GetMetadata<HttpMethodMetadata>();
+                    if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
                         continue;
 
                     var mi = ep.Metadata.GetMetadata<MethodInfo>()
-                             ?? (ep as Microsoft.AspNetCore.Routing.RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+                             ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
                     if (mi is not null)
                     {
-                        var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                        var p = mi.GetParameters()
+                            .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
                         if (p is not null)
                         {
                             var fq = p.GetCustomAttribute<FromQueryAttribute>();
@@ -214,15 +196,13 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                     try
                     {
                         var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
-                        if (parameters is not null)
+                        var p2 = parameters.FirstOrDefault(p =>
+                            string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                        if (p2 is not null)
                         {
-                            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                            if (p2 is not null)
-                            {
-                                var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
-                                if (fq2 is { Name: { Length: > 0 } customName2 })
-                                    return customName2;
-                            }
+                            var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
+                            if (fq2 is { Name: { Length: > 0 } customName2 })
+                                return customName2;
                         }
                     }
                     catch
@@ -230,7 +210,6 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                         // ignore
                     }
                 }
-            }
         }
         catch
         {
@@ -298,16 +277,10 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         public static (string? name, string? value, string? typeHint, bool requiredMissing) Parse(string message)
         {
             var m = Rx.Match(message);
-            if (m.Success)
-            {
-                return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value, false);
-            }
+            if (m.Success) return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value, false);
 
             var r = RxRequired.Match(message);
-            if (r.Success)
-            {
-                return (r.Groups["name"].Value, null, r.Groups["type"].Value, true);
-            }
+            if (r.Success) return (r.Groups["name"].Value, null, r.Groups["type"].Value, true);
 
             return (null, null, null, false);
         }
