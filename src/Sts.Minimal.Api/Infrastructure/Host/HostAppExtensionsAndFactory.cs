@@ -110,7 +110,6 @@ public static class HostAppExtensionsAndFactory
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithEnvironmentName()
-                .Enrich.WithThreadId()
                 .Enrich.WithSpan()
                 .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
 
@@ -118,13 +117,11 @@ public static class HostAppExtensionsAndFactory
                 // Scope to logs emitted by ExceptionHandlerMiddleware to avoid hiding other sources
                 .Filter.ByExcluding(e =>
                 {
-                    var result = e.Level == LogEventLevel.Error &&
-                                 e.Exception is BadHttpRequestException ex &&
+                    var result = e is { Level: LogEventLevel.Error, Exception: BadHttpRequestException ex } &&
                                  (ex.Message?.StartsWith("Failed to bind parameter") ?? false) &&
                                  e.Properties.TryGetValue("SourceContext", out var sc) &&
-                                 sc is ScalarValue sv && sv.Value is string src &&
+                                 sc is ScalarValue { Value: string src } &&
                                  src.Contains("ExceptionHandlerMiddleware");
-
 
                     return result;
                 })
@@ -151,28 +148,25 @@ public static class HostAppExtensionsAndFactory
 
         // Prefer host integration to manage lifetime and disposal
         builder.Host.UseSerilog(logger, true);
-
-        // Add HTTP logging middleware
-        builder.Services.AddHttpLogging();
     }
 
     public static IApplicationBuilder UseStsHost(this IApplicationBuilder app)
     {
         // Configure logging middleware
-        app.UseSerilogRequestLogging(options =>
-        {
-            options.IncludeQueryInRequestPath = true;
-
-            // Emit debug-level events instead of the defaults
-            options.GetLevel = (httpContext, elapsed, ex) => LogEventLevel.Debug;
-
-            // Attach additional properties to the request completion event
-            options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
-            {
-                diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
-                diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
-            };
-        });
+        // app.UseSerilogRequestLogging(options =>
+        // {
+        //     options.IncludeQueryInRequestPath = true;
+        //
+        //     // Emit debug-level events instead of the defaults
+        //     options.GetLevel = (httpContext, elapsed, ex) => LogEventLevel.Debug;
+        //
+        //     // Attach additional properties to the request completion event
+        //     options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        //     {
+        //         diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? string.Empty);
+        //         diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        //     };
+        // });
 
         return app;
     }

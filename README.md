@@ -2,17 +2,19 @@
 
 A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint organization, request validation, OpenAPI/Scalar API reference, and structured logging with Serilog.
 
-> Tech stack: .NET 9, ASP.NET Core Minimal APIs, Serilog, Scalar (OpenAPI UI), JWT auth (Keycloak)
+> Tech stack: .NET 10, ASP.NET Core Minimal APIs, Serilog, Scalar (OpenAPI UI), JWT auth (Keycloak)
 
 ---
 
 ## Badges
 
 <!-- Replace the placeholders with your repo details -->
-[![.NET](https://img.shields.io/badge/.NET-9.0-5C2D91.svg)](#)
+[![.NET](https://img.shields.io/badge/.NET-10.0-5C2D91.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
+
+> Status: README updated to reflect current project state as of 2025-11-18 (local time).
 
 ## Features
 
@@ -32,7 +34,7 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 
 ### Prerequisites
 
-- .NET SDK 9.0 or later
+- .NET SDK 10.0 or later
 - Docker Desktop (required for Keycloak; also runs Seq locally)
 
 ### Run the API (Development)
@@ -142,12 +144,24 @@ Base path: `/payments`
 
 Authorization model:
 - The `/payments` route group enforces the `reader` policy by default (Bearer JWT via Keycloak required).
-- Exception 1: GET `/payments/{paymentId:int}` is explicitly marked `AllowAnonymous` for demo purposes.
-- Exception 2: POST `/payments` elevates to the `writer` policy (requires role `writer`).
+- Anonymous exceptions (for demo purposes):
+  - GET `/payments/{paymentId:int}`
+  - GET `/payments/by-reference/{referenceId:guid}`
+  - GET `/payments/by-date/{date}`
+- Elevated authorization:
+  - POST `/payments` requires the `writer` role.
 
 Use the access token from the steps above where authorization is required.
 
 - GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable, Anonymous)
+  - 200: `GetPaymentResponse`
+  - 400: Validation problem
+  - 404: Not found
+- GET `/payments/by-reference/{referenceId:guid}` — Retrieve a payment by reference ID (Stable, Anonymous)
+  - 200: `GetPaymentResponse`
+  - 400: Validation problem
+  - 404: Not found
+- GET `/payments/by-date/{date}` — Retrieve a payment by payment date (Stable, Anonymous)
   - 200: `GetPaymentResponse`
   - 400: Validation problem
   - 404: Not found
@@ -192,6 +206,12 @@ curl -i "http://localhost:5239/payments/666" -H "Accept: application/json, appli
 
 # Successful read (example ID 1)
 curl -s "http://localhost:5239/payments/1"
+
+# Get a payment by reference (anonymous)
+curl -i "http://localhost:5239/payments/by-reference/9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a" -H "Accept: application/json, application/problem+json"
+
+# Get a payment by date (anonymous)
+curl -i "http://localhost:5239/payments/by-date/2025-01-01" -H "Accept: application/json, application/problem+json"
 
 # Query endpoint (individual params)
 curl -s "http://localhost:5239/payments/query?paymentId=10&valueDateString=2025-01-01&status=FINISHED&referenceId=9b9f6f3a-9c7e-4e75-9f3a-8a2e2d1c1d1a" -H "Authorization: Bearer $TOKEN"
@@ -285,7 +305,7 @@ minimal-api/
 
 ## Development
 
-- Target framework: `net9.0`
+- Target framework: `net10.0`
 - Local run: `dotnet run --project src/Sts.Minimal.Api/Sts.Minimal.Api.csproj`
 - HTTP logging middleware and Serilog request logging are enabled by default.
 

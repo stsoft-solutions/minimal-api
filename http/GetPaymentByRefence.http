@@ -1,0 +1,40 @@
+### Get payment by reference ID
+GET {{HostAddress}}/payments/by-reference/{{$uuid}}
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 200, "Response status is 200");
+    });
+%}
+
+### Get payment by reference ID. Wrong uuid format
+GET {{HostAddress}}/payments/by-reference/wrong-format-id
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 404, "Response status is 404");
+    });
+%}
+
+### Get payment by reference ID. Wrong uuid format
+GET {{HostAddress}}/payments/by-reference/c96e9157-4102-46d3-41d6f59d59d6
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 404, "Response status is 404");
+    });
+%}
+
+### Get payment by reference ID. There is no ID
+GET {{HostAddress}}/payments/by-reference/
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 404, "Response status is 404");
+    });
+%}
+

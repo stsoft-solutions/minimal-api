@@ -1,0 +1,20 @@
+### Get payment by date
+GET {{HostAddress}}/payments/by-date/2024-06-15
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 200, "Response status is 200");
+    });
+%}
+
+### Get payment by date. Wrong date
+GET {{HostAddress}}/payments/by-date/2024-31-15
+Accept: application/json, application/problem+json
+
+> {%
+    client.test("Request executed successfully", function () {
+        client.assert(response.status === 400, "Response status is 400");
+    });
+%}
+

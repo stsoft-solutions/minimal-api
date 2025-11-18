@@ -9,7 +9,7 @@ namespace Sts.Minimal.Api.Features.Payment.Handlers;
 /// <summary>
 /// Provides a method to handle a GET payment request by payment ID.
 /// </summary>
-public class GetPaymentHandler
+public partial class GetPaymentHandler
 {
     /// <summary>
     /// Handles the GET payment request by retrieving payment information based on the provided payment ID.
@@ -43,7 +43,7 @@ public class GetPaymentHandler
             [FromServices] ILogger<GetPaymentHandler> logger
         )
     {
-        logger.LogInformation("Fetching payment with PaymentId: {PaymentId}", paymentId);
+        LogFetchingPaymentWithPaymentId(logger, paymentId);
 
         // Small delay to simulate async operation
         await Task.Delay(50);
@@ -78,4 +78,7 @@ public class GetPaymentHandler
                 return TypedResults.NotFound();
         }
     }
+
+    [LoggerMessage(LogLevel.Information, "Fetching payment with PaymentId: {PaymentId}")]
+    static partial void LogFetchingPaymentWithPaymentId(ILogger<GetPaymentHandler> logger, int paymentId);
 }

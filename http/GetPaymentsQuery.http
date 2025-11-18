@@ -1,5 +1,5 @@
 ### Get all payments
-GET {{HostAddress}}/payments/query
+GET {{HostAddress}}/payments/query?statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -14,7 +14,7 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
 
 
 ### Pass invalid payment ID
-GET {{HostAddress}}/payments/query?paymentId=5000
+GET {{HostAddress}}/payments/query?paymentId=5000&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -24,13 +24,13 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.paymentId[0] === "The field paymentId must be between 1 and 1000.", "Error message is correct");
+        client.assert(response.body.errors["payment-id"][0] === "The field payment-id must be between 1 and 1000.", "Error message is correct");
     });
 %}
 
 
 ### Pass invalid valueDateString
-GET {{HostAddress}}/payments/query?valueDateString=invalid-date
+GET {{HostAddress}}/payments/query?valueDateString=invalid-date&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -40,12 +40,12 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.valueDateString[0] === "The value 'invalid-date' is not valid for valueDateString.", "Error message is correct");
+        client.assert(response.body.errors["value-date-string"][0] === "The value 'invalid-date' is not valid for value-date-string.", "Error message is correct");
     });
 %}
 
 ### Pass invalid valueDateString (wrong date)
-GET {{HostAddress}}/payments/query?valueDateString=2025-31-31
+GET {{HostAddress}}/payments/query?valueDateString=2025-31-31&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -55,13 +55,13 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.valueDateString[0] === "The value '2025-31-31' is not valid for valueDateString.", "Error message is correct");
+        client.assert(response.body.errors["value-date-string"][0] === "The value '2025-31-31' is not valid for value-date-string.", "Error message is correct");
     });
 %}
 
 
 ### Pass invalid status (wrong status)
-GET {{HostAddress}}/payments/query?status=wrong
+GET {{HostAddress}}/payments/query?status=wrong&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -76,7 +76,7 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
 %}
 
 ### Pass special status (FINISHED)
-GET {{HostAddress}}/payments/query?status=FINISHED
+GET {{HostAddress}}/payments/query?status=FINISHED&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -90,7 +90,7 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
 %}
 
 ### Pass reference ID
-GET {{HostAddress}}/payments/query?referenceId={{$random.uuid}}
+GET {{HostAddress}}/payments/query?referenceId={{$random.uuid}}&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -104,7 +104,7 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
 %}
 
 ### Pass wrong reference ID
-GET {{HostAddress}}/payments/query?referenceId=wrong-format-id
+GET {{HostAddress}}/payments/query?referenceId=wrong-format-id&statusEnum=Pending&custom-status=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 
@@ -114,6 +114,50 @@ Authorization: Bearer {{$auth.token("auth-reader")}}
         client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
         client.assert(response.body instanceof Object, "Response body is an object");
         client.assert(response.body.status === 400, "Error code is 400");
-        client.assert(response.body.errors.referenceId[0] === "Invalid format. Must be a valid GUID.", "Error message is correct");
+        client.assert(response.body.errors.referenceId[0] === "Invalid format. Must be a valid GUID", "Error message is correct");
+    });
+%}
+
+### Value date
+GET {{HostAddress}}/payments/query?valueDate=2023-12-31&statusEnum=Pending&custom-status=Pending
+Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-reader")}}
+
+> {%
+    client.test("Value date", function () {
+        client.assert(response.status === 200, "Response status is 200");
+        client.assert(response.contentType.mimeType === "application/json", "Response content type is application/json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+    });
+%}
+
+### Pass invalid status for original enum
+GET {{HostAddress}}/payments/query?statusEnum=wrong&custom-status=Pending
+Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-reader")}}
+
+> {%
+    client.test("Request executed successfully. Wrong status", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors.statusEnum[0] === "Invalid value: `wrong`", "Error message is correct");
+    });
+%}
+
+
+### Pass invalid status for custom original enum
+GET {{HostAddress}}/payments/query?statusEnum=Pending&custom-status=wrong
+Accept: application/json, application/problem+json
+Authorization: Bearer {{$auth.token("auth-reader")}}
+
+> {%
+    client.test("Request executed successfully. Wrong status", function () {
+        client.assert(response.status === 400, "Response status is 400");
+        client.assert(response.contentType.mimeType === "application/problem+json", "Response content type is application/problem+json");
+        client.assert(response.body instanceof Object, "Response body is an object");
+        client.assert(response.body.status === 400, "Error code is 400");
+        client.assert(response.body.errors["custom-status"][0] === "Invalid value: `wrong`", "Error message is correct");
     });
 %}

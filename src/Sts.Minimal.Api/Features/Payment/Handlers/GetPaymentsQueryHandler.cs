@@ -15,26 +15,35 @@ public class GetPaymentsQueryHandler
 {
     public static async Task<Results<Ok<IEnumerable<GetPaymentsItem>>, NotFound, ValidationProblem, ProblemHttpResult>>
         HandleAsync(
-            [FromQuery(Name = "paymentId")] [Range(1, 1000)] [Description("Payment ID")]
+            [FromQuery] [Range(1, 1000)] [Description("Payment ID")]
             int? paymentId,
-            [FromQuery(Name = "valueDateString")] [Description("Value date")] [StringAsIsoDate]
+            [FromQuery] [Description("Value date")] [StringAsIsoDate]
             string? valueDateString,
-            [FromQuery(Name = "status")] [Description("Payment's status")] [StringAsEnum(typeof(PaymentStatus))]
-            string? rawStatus,
-            [FromQuery(Name = "referenceId")] [Description("Reference ID")]
+            [FromQuery] [Description("Payment's status")] [StringAsEnum(typeof(PaymentStatus))]
+            string? status,
+            [FromQuery] [Description("Reference ID")]
             Guid? referenceId,
-            [FromServices] ILogger<GetPaymentsQueryHandler> logger
+            [FromQuery] [Description("Value date 1")]
+            DateOnly? valueDate,
+            [FromQuery] [Description("Payment's status")]
+            PaymentStatus? statusEnumNullable,
+            [FromQuery] [Description("Payment's status")]
+            PaymentStatus statusEnum,
+            [FromQuery(Name = "custom-status")] [Description("Payment's status")]
+            PaymentStatus statusEnumCustomName,
+            [FromServices] ILogger<GetPaymentsQueryHandler> logger,
+            CancellationToken cancellationToken = default
         )
     {
         // Small delay to simulate async operation
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationToken);
 
         // Normalize status to enum if provided (supports JsonStringEnumMemberName)
-        var parsedStatus = EnumParsing.ParseNullable<PaymentStatus>(rawStatus);
+        var parsedStatus = EnumParsing.ParseNullable<PaymentStatus>(status);
 
         logger.LogInformation(
-            "Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}, ReferenceId: {ReferenceId}",
-            paymentId, valueDateString, parsedStatus, referenceId);
+            "Fetching payments with PaymentId: {PaymentId}, ValueDate: {ValueDate}, Status: {Status}, ReferenceId: {ReferenceId}, ValueDateParam: {ValueDateParam}",
+            paymentId, valueDateString, parsedStatus, referenceId, valueDate);
 
         // Here you would typically filter payments based on the provided parameters.
         return TypedResults.Ok(new List<GetPaymentsItem>().AsEnumerable());

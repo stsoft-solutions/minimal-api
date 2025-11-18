@@ -1,88 +1,55 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi; // Updated to new flattened namespace
+
 
 namespace Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
 /// <summary>
-/// The <c>JwtBearerOperationTransformer</c> class is used to transform OpenAPI operations
-/// by applying modifications related to JWT Bearer authentication.
+/// Transforms OpenAPI operations adding JWT Bearer security requirements and standard auth responses.
+/// Updated for microsoft.openapi v3 flattened model (OpenApiSecurityRequirement uses OpenApiSecuritySchemeReference keys).
 /// </summary>
-/// <remarks>
-/// This class is intended to be used as part of the OpenAPI operation transformation pipeline
-/// to ensure that specific operations are configured for JWT Bearer authentication handling.
-/// </remarks>
 public sealed class JwtBearerOperationTransformer : IOpenApiOperationTransformer
 {
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context,
         CancellationToken cancellationToken)
     {
-        // Collect endpoint metadata
-        var metadata = ((IEnumerable<object>?)context.Description.ActionDescriptor?.EndpointMetadata
-                        ?? []).ToArray();
+        var metadata = ((IEnumerable<object>?)context.Description.ActionDescriptor?.EndpointMetadata ?? []).ToArray();
 
-        // If [AllowAnonymous] is present -> skip
-        var hasAllowAnonymous = metadata.OfType<IAllowAnonymous>().Any()
-                                || metadata.OfType<AllowAnonymousAttribute>().Any();
-        if (hasAllowAnonymous)
+        // Skip if endpoint explicitly allows anonymous access
+        if (metadata.OfType<IAllowAnonymous>().Any() || metadata.OfType<AllowAnonymousAttribute>().Any())
             return Task.CompletedTask;
 
-        // Detect any authorization requirement:
-        // - [Authorize] attribute(s)
-        // - .RequireAuthorization() / policy names (IAuthorizeData)
+        // Determine if any authorization metadata present
         var authorizeData = metadata.OfType<IAuthorizeData>().ToArray();
-        var requiresAuth = authorizeData.Length > 0;
-
-        if (!requiresAuth)
+        if (authorizeData.Length == 0)
             return Task.CompletedTask;
 
         operation.Security ??= new List<OpenApiSecurityRequirement>();
 
-        // Attach Bearer security requirement (no scopes for plain JWT)
+        // Build bearer requirement using new reference type
+        var schemeRef = new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, context.Document, null);
         var bearerRequirement = new OpenApiSecurityRequirement
         {
-            [new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = JwtBearerDefaults.AuthenticationScheme
-                    }
-                }
-            ] = []
+            [schemeRef] = new List<string>() // no scopes for plain JWT
         };
 
-        // Avoid duplicates
-        var alreadyPresent = operation.Security.Any(sr =>
-            sr.Keys.Any(k => k.Reference?.Id == JwtBearerDefaults.AuthenticationScheme));
-
+        var alreadyPresent = operation.Security.Any(sr => sr.Keys.Any(k => k.Name == JwtBearerDefaults.AuthenticationScheme));
         if (!alreadyPresent)
             operation.Security.Add(bearerRequirement);
 
-        // Add standard 401/403 responses if missing
+        // Ensure 401/403 responses present
         operation.Responses ??= new OpenApiResponses();
         if (!operation.Responses.ContainsKey("401"))
-            operation.Responses.Add("401", new OpenApiResponse
-            {
-                Description = "Unauthorized"
-            });
+            operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
         if (!operation.Responses.ContainsKey("403"))
-            operation.Responses.Add("403", new OpenApiResponse
-            {
-                Description = "Forbidden"
-            });
+            operation.Responses.Add("403", new OpenApiResponse { Description = "Forbidden" });
 
-        // Optional: reflect policy names in description (handy for debugging)
-        var policies = authorizeData
-            .Select(d => d.Policy)
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Distinct()
-            .ToArray();
-
+        // Append policy info if any
+        var policies = authorizeData.Select(d => d.Policy).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct().ToArray();
         if (policies.Length > 0)
-            operation.Description = (operation.Description ?? string.Empty) +
-                                    $"\n\n**Requires policies**: {string.Join(", ", policies)}";
+            operation.Description = (operation.Description ?? string.Empty) + $"\n\n**Requires policies**: {string.Join(", ", policies)}";
 
         return Task.CompletedTask;
     }

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,13 +46,20 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
         badHttpRequestException.Data.Add("BadHttpRequestToValidationHandler", true);
 
-        var (name, value, typeHintRaw) = BinderMessageParser.Parse(badHttpRequestException.Message);
+        var (name, value, typeHintRaw, isRequiredMissing) = BinderMessageParser.Parse(badHttpRequestException.Message);
         var typeHint = BinderMessageParser.UnwrapNullable(typeHintRaw);
+
+        // Try to map CLR parameter name to the public query parameter name (FromQuery.Name)
+        var publicName = MapToQueryParameterName(context, name);
+
+        var effectiveName = publicName
+                            ?? ToKebabCase(name)
+                            ?? "unknown-parameter";
 
         var vpd = new ValidationProblemDetails(
             new Dictionary<string, string[]>
             {
-                [name ?? "unknownParameter"] = [FriendlyError(typeHint, value)]
+                [effectiveName] = [FriendlyError(typeHint, value, isRequiredMissing)]
             }
         )
         {
@@ -66,22 +74,226 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     }
 
     /// <summary>
-    /// Generates a user-friendly error message based on the provided type hint.
+    /// Maps a CLR handler parameter name to its corresponding query parameter name
+    /// as exposed via the <see cref="FromQueryAttribute" /> Name property.
+    /// Falls back to the original name if mapping is unavailable.
     /// </summary>
-    /// <param name="typeHint">
-    /// A string that indicates the expected type of the parameter, used to customize the error message
-    /// (e.g., "int", "guid", "dateonly").
-    /// </param>
-    /// <param name="_">The actual parameter value that caused the error isn't used in this method.</param>
-    /// <returns>A user-friendly error message indicating the expected format or type of the parameter.</returns>
-    private static string FriendlyError(string? typeHint, string? _)
+    private static string? MapToQueryParameterName(HttpContext httpContext, string? originalName)
     {
+        if (string.IsNullOrWhiteSpace(originalName)) return originalName;
+
+        // Get handler MethodInfo from endpoint metadata (Minimal APIs add MethodInfo to metadata)
+        var endpoint = httpContext.GetEndpoint();
+        if (endpoint is null)
+        {
+            // When we are already in the exception branch, the selected endpoint can be null.
+            // Fall back to scanning EndpointDataSource for a matching endpoint by HTTP method
+            // and then try to resolve the FromQuery(Name) from its parameter metadata.
+            try
+            {
+                var dataSource = httpContext.RequestServices.GetService(typeof(EndpointDataSource)) as EndpointDataSource;
+                var httpMethod = httpContext.Request.Method;
+                if (dataSource is not null)
+                    foreach (var ep in dataSource.Endpoints)
+                    {
+                        var methodMeta = ep.Metadata.GetMetadata<HttpMethodMetadata>();
+                        if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                            continue; // different HTTP method
+
+                        var resolved = ResolveFromEndpointMetadata(ep, originalName);
+                        if (resolved is { Length: > 0 }) return resolved;
+                    }
+            }
+            catch
+            {
+                // ignore and fall back to the original name
+            }
+
+            return originalName;
+        }
+
+        var method = endpoint.Metadata.GetMetadata<MethodInfo>();
+
+        // Some hosting scenarios wrap metadata; also check RouteEndpoint's metadata bag
+        method ??= (endpoint as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+
+        // Primary path: use MethodInfo when available
+        if (method is not null)
+        {
+            var param = method
+                .GetParameters()
+                .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+
+            var customName = GetFromQueryCustomName(param);
+            if (!string.IsNullOrEmpty(customName)) return customName;
+
+            // Additionally, check properties on any complex parameter types for [FromQuery(Name=...)]
+            foreach (var p in method.GetParameters())
+            {
+                var prop = p.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
+        }
+
+        // Fallback: Some Minimal API setups expose ParameterInfo items directly in endpoint metadata
+        try
+        {
+            var parameters = endpoint.Metadata.GetOrderedMetadata<ParameterInfo>();
+            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            var custom2 = GetFromQueryCustomName(p2);
+            if (!string.IsNullOrEmpty(custom2)) return custom2;
+
+            // Also try to resolve from properties of complex parameter types exposed in metadata
+            foreach (var p in parameters)
+            {
+                var prop = p.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
+        }
+        catch
+        {
+            // ignore and fall back
+        }
+
+        // Last chance: if the current endpoint didn't help, try a limited scan over EndpointDataSource
+        try
+        {
+            var dataSource = httpContext.RequestServices.GetService(typeof(EndpointDataSource)) as EndpointDataSource;
+            var httpMethod = httpContext.Request.Method;
+            if (dataSource is not null)
+                foreach (var ep in dataSource.Endpoints)
+                {
+                    var methodMeta = ep.Metadata.GetMetadata<HttpMethodMetadata>();
+                    if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                        continue;
+
+                    var resolved = ResolveFromEndpointMetadata(ep, originalName);
+                    if (!string.IsNullOrEmpty(resolved)) return resolved;
+                }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return originalName;
+    }
+
+    /// <summary>
+    /// Returns the custom query name specified via <see cref="FromQueryAttribute.Name"/> for the supplied parameter,
+    /// or null when not present.
+    /// </summary>
+    private static string? GetFromQueryCustomName(ParameterInfo? parameter)
+    {
+        var attr = parameter?.GetCustomAttribute<FromQueryAttribute>();
+        return !string.IsNullOrEmpty(attr?.Name) ? attr!.Name : null;
+    }
+
+    /// <summary>
+    /// Returns the custom query name specified via <see cref="FromQueryAttribute.Name"/> for the supplied property,
+    /// or null when not present.
+    /// </summary>
+    private static string? GetFromQueryCustomName(PropertyInfo? property)
+    {
+        var attr = property?.GetCustomAttribute<FromQueryAttribute>();
+        return !string.IsNullOrEmpty(attr?.Name) ? attr!.Name : null;
+    }
+
+    /// <summary>
+    /// Attempts to resolve the public query name for a CLR parameter from a given <see cref="Endpoint"/> metadata.
+    /// Tries both the <see cref="MethodInfo"/> parameters and the metadata bag of <see cref="ParameterInfo"/>.
+    /// Returns null if not found.
+    /// </summary>
+    private static string? ResolveFromEndpointMetadata(Endpoint ep, string originalName)
+    {
+        // Try MethodInfo path first
+        var mi = ep.Metadata.GetMetadata<MethodInfo>()
+                 ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+        if (mi is not null)
+        {
+            var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            var custom = GetFromQueryCustomName(p);
+            if (!string.IsNullOrEmpty(custom)) return custom;
+
+            // Scan properties on complex method parameters
+            foreach (var prm in mi.GetParameters())
+            {
+                var prop = prm.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
+        }
+
+        // Fallback to ParameterInfo metadata bag
+        try
+        {
+            var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
+            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            var custom2 = GetFromQueryCustomName(p2);
+            if (!string.IsNullOrEmpty(custom2)) return custom2;
+
+            // And scan properties on complex parameter types
+            foreach (var prm in parameters)
+            {
+                var prop = prm.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Converts a CLR-style identifier (PascalCase/camelCase) into kebab-case for use in public query parameter names.
+    /// If the input already contains hyphens or underscores, it makes a best-effort to normalize to kebab-case.
+    /// Returns null if the input is null or whitespace.
+    /// </summary>
+    private static string? ToKebabCase(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        // If it already looks like kebab-case, just lower and return
+        if (name.Contains('-')) return name.Replace("_", "-").ToLowerInvariant();
+
+        // Insert hyphens between lowercase-to-uppercase boundaries and between acronym-to-normal boundaries
+        // Examples: PaymentId -> payment-id, HTTPStatusCode -> http-status-code, value_date -> value-date
+        var withHyphens = Regex.Replace(name, "(?<!^)([A-Z][a-z]|(?<=[a-z0-9])[A-Z])", "-$1");
+        withHyphens = withHyphens.Replace('_', '-');
+        return withHyphens.ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Generates a user-friendly error message based on the parameter type, provided value, and whether the parameter was missing.
+    /// </summary>
+    /// <param name="typeHint">A hint describing the expected type of the parameter, such as "int", "GUID", or "bool".</param>
+    /// <param name="value">The value of the parameter, if supplied, or null if not provided.</param>
+    /// <param name="isRequiredMissing">A boolean indicating whether the parameter was required but missing.</param>
+    /// <returns>A user-friendly error message describing the issue with the provided parameter.</returns>
+    private static string FriendlyError(string? typeHint, string? value, bool isRequiredMissing)
+    {
+        if (isRequiredMissing)
+            return "Required parameter is missing";
         var t = typeHint?.ToLowerInvariant() ?? "";
-        if (t.Contains("guid")) return "Invalid format. Must be a valid GUID.";
-        if (t.Contains("int")) return "Invalid number. Must be an integer.";
-        if (t.Contains("dateonly")) return "Invalid date. Use yyyy-MM-dd.";
-        if (t.Contains("bool")) return "Invalid boolean. Use true or false.";
-        return "Invalid value.";
+        if (t.Contains("guid")) return "Invalid format. Must be a valid GUID";
+        if (t.Contains("int")) return "Invalid number. Must be an integer";
+        if (t.Contains("dateonly")) return "Invalid date. Use yyyy-MM-dd";
+        if (t.Contains("bool")) return "Invalid boolean. Use true or false";
+        return $"Invalid value: `{value}`";
     }
 
     /// <summary>
@@ -101,6 +313,12 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             "Failed to bind parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+from\\s+\"(?<value>.*?)\"",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        // Regex for missing required parameter from query string
+        // Example: "Required parameter \"PaymentStatus statusEnum\" was not provided from query string."
+        private static readonly Regex RxRequired = new(
+            "^Required parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+was not provided from query string\\.?$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         /// <summary>
         /// Parses a binder error message and extracts the parameter name, parameter value,
         /// and the type hint, if available, from the message.
@@ -112,12 +330,15 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         /// - The parameter value as a string, or null if not found.
         /// - The type hint as a string, or null if not found.
         /// </returns>
-        public static (string? name, string? value, string? typeHint) Parse(string message)
+        public static (string? name, string? value, string? typeHint, bool requiredMissing) Parse(string message)
         {
             var m = Rx.Match(message);
-            return !m.Success
-                ? (null, null, null)
-                : (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value);
+            if (m.Success) return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value, false);
+
+            var r = RxRequired.Match(message);
+            if (r.Success) return (r.Groups["name"].Value, null, r.Groups["type"].Value, true);
+
+            return (null, null, null, false);
         }
 
         /// <summary>
