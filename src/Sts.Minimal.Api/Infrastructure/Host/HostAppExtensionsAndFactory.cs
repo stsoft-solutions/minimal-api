@@ -117,8 +117,7 @@ public static class HostAppExtensionsAndFactory
                 // Scope to logs emitted by ExceptionHandlerMiddleware to avoid hiding other sources
                 .Filter.ByExcluding(e =>
                 {
-                    var result = e.Level == LogEventLevel.Error &&
-                                 e.Exception is BadHttpRequestException ex &&
+                    var result = e is { Level: LogEventLevel.Error, Exception: BadHttpRequestException ex } &&
                                  (ex.Message?.StartsWith("Failed to bind parameter") ?? false) &&
                                  e.Properties.TryGetValue("SourceContext", out var sc) &&
                                  sc is ScalarValue { Value: string src } &&
