@@ -1,5 +1,5 @@
 ### Get all payments
-GET {{HostAddress}}/payments/query
+GET {{HostAddress}}/payments/query?statusEnum=Pending
 Accept: application/json, application/problem+json
 Authorization: Bearer {{$auth.token("auth-reader")}}
 

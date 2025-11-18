@@ -29,11 +29,14 @@ public class GetPaymentsQueryHandler
             PaymentStatus? statusEnumNullable,
             [FromQuery] [Description("Payment's status")]
             PaymentStatus statusEnum,
-            [FromServices] ILogger<GetPaymentsQueryHandler> logger
+            [FromQuery(Name = "custom-status")] [Description("Payment's status")]
+            PaymentStatus statusEnumCustomName,
+            [FromServices] ILogger<GetPaymentsQueryHandler> logger,
+            CancellationToken cancellationToken = default
         )
     {
         // Small delay to simulate async operation
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationToken);
 
         // Normalize status to enum if provided (supports JsonStringEnumMemberName)
         var parsedStatus = EnumParsing.ParseNullable<PaymentStatus>(status);

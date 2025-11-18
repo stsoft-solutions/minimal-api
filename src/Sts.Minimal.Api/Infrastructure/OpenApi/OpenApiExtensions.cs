@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using Serilog;
 using Sts.Minimal.Api.Infrastructure.Middleware;
 using Sts.Minimal.Api.Infrastructure.OpenApi.Transformers;
 
@@ -60,6 +61,7 @@ public static class OpenApiExtensions
         // Add Problem Details middleware for standardized error responses
         services.AddValidation();
         services.AddProblemDetails();
+        services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
 
         // Add HTTP logging
         services.AddHttpLogging(options =>
@@ -68,9 +70,7 @@ public static class OpenApiExtensions
             options.LoggingFields = HttpLoggingFields.None;
             options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders | HttpLoggingFields.ResponsePropertiesAndHeaders| HttpLoggingFields.Duration | HttpLoggingFields.RequestBody | HttpLoggingFields.ResponseBody;
         });
-
-        //services.AddExceptionHandler<BadHttpRequestToValidationHandler>();
-
+        
         return services;
     }
 
@@ -81,7 +81,11 @@ public static class OpenApiExtensions
     /// <returns>The WebApplication instance with OpenAPI middleware configured.</returns>
     public static IApplicationBuilder UseOpenApiInfrastructure(this WebApplication app)
     {
-        app.UseHttpLogging();
+        // Add HTTP logging middleware
+        app.UseSerilogRequestLogging(options =>
+        {
+            options.EnrichDiagnosticContext = LogHelper.EnrichFromHttpContext;
+        });
 
         // ---1 Then the framework-wide exception handler for all other exceptions ---
         app.UseExceptionHandler(); // handles everything else (NullReferenceException, etc.)

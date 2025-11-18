@@ -1,4 +1,6 @@
 ﻿using System.Text.RegularExpressions;
+using System.Reflection;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -45,13 +47,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
         badHttpRequestException.Data.Add("BadHttpRequestToValidationHandler", true);
 
-        var (name, value, typeHintRaw) = BinderMessageParser.Parse(badHttpRequestException.Message);
+        var (name, value, typeHintRaw, isRequiredMissing) = BinderMessageParser.Parse(badHttpRequestException.Message);
         var typeHint = BinderMessageParser.UnwrapNullable(typeHintRaw);
+
+        // Try to map CLR parameter name to the public query parameter name (FromQuery.Name)
+        var publicName = MapToQueryParameterName(context, name);
 
         var vpd = new ValidationProblemDetails(
             new Dictionary<string, string[]>
             {
-                [name ?? "unknownParameter"] = [FriendlyError(typeHint, value)]
+                [publicName ?? "unknownParameter"] = [FriendlyError(typeHint, value, isRequiredMissing)]
             }
         )
         {
@@ -66,6 +71,176 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     }
 
     /// <summary>
+    /// Maps a CLR handler parameter name to its corresponding query parameter name
+    /// as exposed via the <see cref="FromQueryAttribute"/> Name property.
+    /// Falls back to the original name if mapping is unavailable.
+    /// </summary>
+    private static string? MapToQueryParameterName(HttpContext httpContext, string? originalName)
+    {
+        if (string.IsNullOrWhiteSpace(originalName)) return originalName;
+
+        // Get handler MethodInfo from endpoint metadata (Minimal APIs add MethodInfo to metadata)
+        var endpoint = httpContext.GetEndpoint();
+        if (endpoint is null)
+        {
+            // When we are already in the exception branch, the selected endpoint can be null.
+            // Fall back to scanning EndpointDataSource for a matching endpoint by HTTP method
+            // and then try to resolve the FromQuery(Name) from its parameter metadata.
+            try
+            {
+                var dataSource = httpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Routing.EndpointDataSource)) as Microsoft.AspNetCore.Routing.EndpointDataSource;
+                var httpMethod = httpContext.Request.Method;
+                if (dataSource is not null)
+                {
+                    foreach (var ep in dataSource.Endpoints)
+                    {
+                        var methodMeta = ep.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>();
+                        if (methodMeta is not null && methodMeta.HttpMethods is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                            continue; // different HTTP method
+
+                        // Try MethodInfo path first
+                        var mi = ep.Metadata.GetMetadata<MethodInfo>()
+                                 ?? (ep as Microsoft.AspNetCore.Routing.RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+                        if (mi is not null)
+                        {
+                            var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                            if (p is not null)
+                            {
+                                var fq = p.GetCustomAttribute<FromQueryAttribute>();
+                                if (fq is { Name: { Length: > 0 } customName })
+                                    return customName;
+                            }
+                        }
+
+                        // Fallback to ParameterInfo metadata bag
+                        try
+                        {
+                            var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
+                            if (parameters is not null)
+                            {
+                                var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                                if (p2 is not null)
+                                {
+                                    var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
+                                    if (fq2 is { Name: { Length: > 0 } customName2 })
+                                        return customName2;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // ignore
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore and fall back to original name
+            }
+
+            return originalName;
+        }
+
+        var method = endpoint.Metadata.GetMetadata<MethodInfo>();
+
+        // Some hosting scenarios wrap metadata; also check RouteEndpoint's metadata bag
+        method ??= (endpoint as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+
+        // Primary path: use MethodInfo when available
+        if (method is not null)
+        {
+            var param = method.GetParameters()
+                .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            if (param is not null)
+            {
+                // Look for FromQuery attribute and prefer its Name when set
+                var fromQuery = param.GetCustomAttribute<FromQueryAttribute>();
+                if (fromQuery is { Name: { Length: > 0 } custom })
+                {
+                    return custom;
+                }
+            }
+        }
+
+        // Fallback: Some Minimal API setups expose ParameterInfo items directly in endpoint metadata
+        try
+        {
+            var parameters = endpoint.Metadata.GetOrderedMetadata<ParameterInfo>();
+            if (parameters is not null)
+            {
+                var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                if (p2 is not null)
+                {
+                    var fromQuery2 = p2.GetCustomAttribute<FromQueryAttribute>();
+                    if (fromQuery2 is { Name: { Length: > 0 } custom2 })
+                    {
+                        return custom2;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore and fall back
+        }
+
+        // Last chance: if the current endpoint didn't help, try a limited scan over EndpointDataSource
+        try
+        {
+            var dataSource = httpContext.RequestServices.GetService(typeof(Microsoft.AspNetCore.Routing.EndpointDataSource)) as Microsoft.AspNetCore.Routing.EndpointDataSource;
+            var httpMethod = httpContext.Request.Method;
+            if (dataSource is not null)
+            {
+                foreach (var ep in dataSource.Endpoints)
+                {
+                    var methodMeta = ep.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>();
+                    if (methodMeta is not null && methodMeta.HttpMethods is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
+                        continue;
+
+                    var mi = ep.Metadata.GetMetadata<MethodInfo>()
+                             ?? (ep as Microsoft.AspNetCore.Routing.RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+                    if (mi is not null)
+                    {
+                        var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                        if (p is not null)
+                        {
+                            var fq = p.GetCustomAttribute<FromQueryAttribute>();
+                            if (fq is { Name: { Length: > 0 } customName })
+                                return customName;
+                        }
+                    }
+
+                    try
+                    {
+                        var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
+                        if (parameters is not null)
+                        {
+                            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                            if (p2 is not null)
+                            {
+                                var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
+                                if (fq2 is { Name: { Length: > 0 } customName2 })
+                                    return customName2;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return originalName;
+    }
+
+    /// <summary>
     /// Generates a user-friendly error message based on the provided type hint.
     /// </summary>
     /// <param name="typeHint">
@@ -74,8 +249,10 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     /// </param>
     /// <param name="_">The actual parameter value that caused the error isn't used in this method.</param>
     /// <returns>A user-friendly error message indicating the expected format or type of the parameter.</returns>
-    private static string FriendlyError(string? typeHint, string? _)
+    private static string FriendlyError(string? typeHint, string? value, bool isRequiredMissing)
     {
+        if (isRequiredMissing)
+            return "Required parameter is missing.";
         var t = typeHint?.ToLowerInvariant() ?? "";
         if (t.Contains("guid")) return "Invalid format. Must be a valid GUID.";
         if (t.Contains("int")) return "Invalid number. Must be an integer.";
@@ -101,6 +278,12 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             "Failed to bind parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+from\\s+\"(?<value>.*?)\"",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
+        // Regex for missing required parameter from query string
+        // Example: "Required parameter \"PaymentStatus statusEnum\" was not provided from query string."
+        private static readonly Regex RxRequired = new(
+            "^Required parameter\\s+\"(?<type>[^\\s\"<>`]+(?:<[^>]+>)?(?:`\\d+\\[[^\\]]+\\])?)\\s+(?<name>\\w+)\"\\s+was not provided from query string\\.?$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         /// <summary>
         /// Parses a binder error message and extracts the parameter name, parameter value,
         /// and the type hint, if available, from the message.
@@ -112,12 +295,21 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         /// - The parameter value as a string, or null if not found.
         /// - The type hint as a string, or null if not found.
         /// </returns>
-        public static (string? name, string? value, string? typeHint) Parse(string message)
+        public static (string? name, string? value, string? typeHint, bool requiredMissing) Parse(string message)
         {
             var m = Rx.Match(message);
-            return !m.Success
-                ? (null, null, null)
-                : (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value);
+            if (m.Success)
+            {
+                return (m.Groups["name"].Value, m.Groups["value"].Value, m.Groups["type"].Value, false);
+            }
+
+            var r = RxRequired.Match(message);
+            if (r.Success)
+            {
+                return (r.Groups["name"].Value, null, r.Groups["type"].Value, true);
+            }
+
+            return (null, null, null, false);
         }
 
         /// <summary>

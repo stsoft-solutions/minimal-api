@@ -110,7 +110,6 @@ public static class HostAppExtensionsAndFactory
                 .Enrich.FromLogContext()
                 .Enrich.WithMachineName()
                 .Enrich.WithEnvironmentName()
-                .Enrich.WithThreadId()
                 .Enrich.WithSpan()
                 .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
 
@@ -122,9 +121,8 @@ public static class HostAppExtensionsAndFactory
                                  e.Exception is BadHttpRequestException ex &&
                                  (ex.Message?.StartsWith("Failed to bind parameter") ?? false) &&
                                  e.Properties.TryGetValue("SourceContext", out var sc) &&
-                                 sc is ScalarValue sv && sv.Value is string src &&
+                                 sc is ScalarValue { Value: string src } &&
                                  src.Contains("ExceptionHandlerMiddleware");
-
 
                     return result;
                 })
