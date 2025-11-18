@@ -214,13 +214,13 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     private static string FriendlyError(string? typeHint, string? value, bool isRequiredMissing)
     {
         if (isRequiredMissing)
-            return "Required parameter is missing.";
+            return "Required parameter is missing";
         var t = typeHint?.ToLowerInvariant() ?? "";
-        if (t.Contains("guid")) return "Invalid format. Must be a valid GUID.";
-        if (t.Contains("int")) return "Invalid number. Must be an integer.";
-        if (t.Contains("dateonly")) return "Invalid date. Use yyyy-MM-dd.";
-        if (t.Contains("bool")) return "Invalid boolean. Use true or false.";
-        return "Invalid value.";
+        if (t.Contains("guid")) return "Invalid format. Must be a valid GUID";
+        if (t.Contains("int")) return "Invalid number. Must be an integer";
+        if (t.Contains("dateonly")) return "Invalid date. Use yyyy-MM-dd";
+        if (t.Contains("bool")) return "Invalid boolean. Use true or false";
+        return $"Invalid value: `{value}`";
     }
 
     /// <summary>
