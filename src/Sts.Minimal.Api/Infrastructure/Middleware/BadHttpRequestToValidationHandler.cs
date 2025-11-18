@@ -141,14 +141,13 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         // Primary path: use MethodInfo when available
         if (method is not null)
         {
-            var param = method.GetParameters()
+            var param = method
+                .GetParameters()
                 .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-            if (param is not null)
-            {
-                // Look for the FromQuery attribute and prefer its Name when set
-                var fromQuery = param.GetCustomAttribute<FromQueryAttribute>();
-                if (fromQuery is { Name: { Length: > 0 } custom }) return custom;
-            }
+
+            // Look for the FromQuery attribute and prefer its Name when set
+            var fromQuery = param?.GetCustomAttribute<FromQueryAttribute>();
+            if (fromQuery is { Name: { Length: > 0 } custom }) return custom;
         }
 
         // Fallback: Some Minimal API setups expose ParameterInfo items directly in endpoint metadata
@@ -156,11 +155,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         {
             var parameters = endpoint.Metadata.GetOrderedMetadata<ParameterInfo>();
             var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-            if (p2 is not null)
-            {
-                var fromQuery2 = p2.GetCustomAttribute<FromQueryAttribute>();
-                if (fromQuery2 is { Name: { Length: > 0 } custom2 }) return custom2;
-            }
+            var fromQuery2 = p2?.GetCustomAttribute<FromQueryAttribute>();
+            if (fromQuery2 is { Name: { Length: > 0 } custom2 }) return custom2;
         }
         catch
         {
@@ -183,14 +179,11 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                              ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
                     if (mi is not null)
                     {
-                        var p = mi.GetParameters()
+                        var p = mi
+                            .GetParameters()
                             .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                        if (p is not null)
-                        {
-                            var fq = p.GetCustomAttribute<FromQueryAttribute>();
-                            if (fq is { Name: { Length: > 0 } customName })
-                                return customName;
-                        }
+                        var fq = p?.GetCustomAttribute<FromQueryAttribute>();
+                        if (fq is { Name: { Length: > 0 } customName }) return customName;
                     }
 
                     try
@@ -198,12 +191,9 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                         var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
                         var p2 = parameters.FirstOrDefault(p =>
                             string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                        if (p2 is not null)
-                        {
-                            var fq2 = p2.GetCustomAttribute<FromQueryAttribute>();
-                            if (fq2 is { Name: { Length: > 0 } customName2 })
-                                return customName2;
-                        }
+                        var fq2 = p2?.GetCustomAttribute<FromQueryAttribute>();
+                        if (fq2 is { Name: { Length: > 0 } customName2 })
+                            return customName2;
                     }
                     catch
                     {
