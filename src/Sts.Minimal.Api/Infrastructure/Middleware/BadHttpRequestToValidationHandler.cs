@@ -96,33 +96,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                         if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
                             continue; // different HTTP method
 
-                        // Try MethodInfo path first
-                        var mi = ep.Metadata.GetMetadata<MethodInfo>() ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
-                        if (mi is not null)
-                        {
-                            var p = mi.GetParameters()
-                                .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                            if (p is not null)
-                            {
-                                var fq = p.GetCustomAttribute<FromQueryAttribute>();
-                                if (fq is { Name: { Length: > 0 } customName })
-                                    return customName;
-                            }
-                        }
-
-                        // Fallback to ParameterInfo metadata bag
-                        try
-                        {
-                            var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
-                            var p2 = parameters.FirstOrDefault(p =>
-                                string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                            var fq2 = p2?.GetCustomAttribute<FromQueryAttribute>();
-                            if (fq2 is { Name: { Length: > 0 } customName2 }) return customName2;
-                        }
-                        catch
-                        {
-                            // ignore
-                        }
+                        var resolved = ResolveFromEndpointMetadata(ep, originalName);
+                        if (resolved is { Length: > 0 }) return resolved;
                     }
             }
             catch
@@ -145,9 +120,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                 .GetParameters()
                 .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
 
-            // Look for the FromQuery attribute and prefer its Name when set
-            var fromQuery = param?.GetCustomAttribute<FromQueryAttribute>();
-            if (fromQuery is { Name: { Length: > 0 } custom }) return custom;
+            var customName = GetFromQueryCustomName(param);
+            if (!string.IsNullOrEmpty(customName)) return customName;
         }
 
         // Fallback: Some Minimal API setups expose ParameterInfo items directly in endpoint metadata
@@ -155,8 +129,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         {
             var parameters = endpoint.Metadata.GetOrderedMetadata<ParameterInfo>();
             var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-            var fromQuery2 = p2?.GetCustomAttribute<FromQueryAttribute>();
-            if (fromQuery2 is { Name: { Length: > 0 } custom2 }) return custom2;
+            var custom2 = GetFromQueryCustomName(p2);
+            if (!string.IsNullOrEmpty(custom2)) return custom2;
         }
         catch
         {
@@ -175,30 +149,8 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
                     if (methodMeta is not null && !methodMeta.HttpMethods.Contains(httpMethod, StringComparer.OrdinalIgnoreCase))
                         continue;
 
-                    var mi = ep.Metadata.GetMetadata<MethodInfo>()
-                             ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
-                    if (mi is not null)
-                    {
-                        var p = mi
-                            .GetParameters()
-                            .FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                        var fq = p?.GetCustomAttribute<FromQueryAttribute>();
-                        if (fq is { Name: { Length: > 0 } customName }) return customName;
-                    }
-
-                    try
-                    {
-                        var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
-                        var p2 = parameters.FirstOrDefault(p =>
-                            string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
-                        var fq2 = p2?.GetCustomAttribute<FromQueryAttribute>();
-                        if (fq2 is { Name: { Length: > 0 } customName2 })
-                            return customName2;
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
+                    var resolved = ResolveFromEndpointMetadata(ep, originalName);
+                    if (!string.IsNullOrEmpty(resolved)) return resolved;
                 }
         }
         catch
@@ -207,6 +159,49 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         }
 
         return originalName;
+    }
+
+    /// <summary>
+    /// Returns the custom query name specified via <see cref="FromQueryAttribute.Name"/> for the supplied parameter,
+    /// or null when not present.
+    /// </summary>
+    private static string? GetFromQueryCustomName(ParameterInfo? parameter)
+    {
+        var attr = parameter?.GetCustomAttribute<FromQueryAttribute>();
+        return !string.IsNullOrEmpty(attr?.Name) ? attr!.Name : null;
+    }
+
+    /// <summary>
+    /// Attempts to resolve the public query name for a CLR parameter from a given <see cref="Endpoint"/> metadata.
+    /// Tries both the <see cref="MethodInfo"/> parameters and the metadata bag of <see cref="ParameterInfo"/>.
+    /// Returns null if not found.
+    /// </summary>
+    private static string? ResolveFromEndpointMetadata(Endpoint ep, string originalName)
+    {
+        // Try MethodInfo path first
+        var mi = ep.Metadata.GetMetadata<MethodInfo>()
+                 ?? (ep as RouteEndpoint)?.Metadata.GetMetadata<MethodInfo>();
+        if (mi is not null)
+        {
+            var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            var custom = GetFromQueryCustomName(p);
+            if (!string.IsNullOrEmpty(custom)) return custom;
+        }
+
+        // Fallback to ParameterInfo metadata bag
+        try
+        {
+            var parameters = ep.Metadata.GetOrderedMetadata<ParameterInfo>();
+            var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            var custom2 = GetFromQueryCustomName(p2);
+            if (!string.IsNullOrEmpty(custom2)) return custom2;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
     }
 
     /// <summary>
