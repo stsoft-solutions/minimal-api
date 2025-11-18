@@ -52,10 +52,14 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         // Try to map CLR parameter name to the public query parameter name (FromQuery.Name)
         var publicName = MapToQueryParameterName(context, name);
 
+        var effectiveName = publicName
+                            ?? ToKebabCase(name)
+                            ?? "unknown-parameter";
+
         var vpd = new ValidationProblemDetails(
             new Dictionary<string, string[]>
             {
-                [publicName ?? "unknownParameter"] = [FriendlyError(typeHint, value, isRequiredMissing)]
+                [effectiveName] = [FriendlyError(typeHint, value, isRequiredMissing)]
             }
         )
         {
@@ -122,6 +126,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
 
             var customName = GetFromQueryCustomName(param);
             if (!string.IsNullOrEmpty(customName)) return customName;
+
+            // Additionally, check properties on any complex parameter types for [FromQuery(Name=...)]
+            foreach (var p in method.GetParameters())
+            {
+                var prop = p.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
         }
 
         // Fallback: Some Minimal API setups expose ParameterInfo items directly in endpoint metadata
@@ -131,6 +145,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
             var custom2 = GetFromQueryCustomName(p2);
             if (!string.IsNullOrEmpty(custom2)) return custom2;
+
+            // Also try to resolve from properties of complex parameter types exposed in metadata
+            foreach (var p in parameters)
+            {
+                var prop = p.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
         }
         catch
         {
@@ -172,6 +196,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     }
 
     /// <summary>
+    /// Returns the custom query name specified via <see cref="FromQueryAttribute.Name"/> for the supplied property,
+    /// or null when not present.
+    /// </summary>
+    private static string? GetFromQueryCustomName(PropertyInfo? property)
+    {
+        var attr = property?.GetCustomAttribute<FromQueryAttribute>();
+        return !string.IsNullOrEmpty(attr?.Name) ? attr!.Name : null;
+    }
+
+    /// <summary>
     /// Attempts to resolve the public query name for a CLR parameter from a given <see cref="Endpoint"/> metadata.
     /// Tries both the <see cref="MethodInfo"/> parameters and the metadata bag of <see cref="ParameterInfo"/>.
     /// Returns null if not found.
@@ -186,6 +220,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             var p = mi.GetParameters().FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
             var custom = GetFromQueryCustomName(p);
             if (!string.IsNullOrEmpty(custom)) return custom;
+
+            // Scan properties on complex method parameters
+            foreach (var prm in mi.GetParameters())
+            {
+                var prop = prm.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
         }
 
         // Fallback to ParameterInfo metadata bag
@@ -195,6 +239,16 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
             var p2 = parameters.FirstOrDefault(p => string.Equals(p.Name, originalName, StringComparison.OrdinalIgnoreCase));
             var custom2 = GetFromQueryCustomName(p2);
             if (!string.IsNullOrEmpty(custom2)) return custom2;
+
+            // And scan properties on complex parameter types
+            foreach (var prm in parameters)
+            {
+                var prop = prm.ParameterType
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(pi => string.Equals(pi.Name, originalName, StringComparison.OrdinalIgnoreCase));
+                var propCustom = GetFromQueryCustomName(prop);
+                if (!string.IsNullOrEmpty(propCustom)) return propCustom;
+            }
         }
         catch
         {
@@ -202,6 +256,25 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Converts a CLR-style identifier (PascalCase/camelCase) into kebab-case for use in public query parameter names.
+    /// If the input already contains hyphens or underscores, it makes a best-effort to normalize to kebab-case.
+    /// Returns null if the input is null or whitespace.
+    /// </summary>
+    private static string? ToKebabCase(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        // If it already looks like kebab-case, just lower and return
+        if (name.Contains('-')) return name.Replace("_", "-").ToLowerInvariant();
+
+        // Insert hyphens between lowercase-to-uppercase boundaries and between acronym-to-normal boundaries
+        // Examples: PaymentId -> payment-id, HTTPStatusCode -> http-status-code, value_date -> value-date
+        var withHyphens = Regex.Replace(name, "(?<!^)([A-Z][a-z]|(?<=[a-z0-9])[A-Z])", "-$1");
+        withHyphens = withHyphens.Replace('_', '-');
+        return withHyphens.ToLowerInvariant();
     }
 
     /// <summary>
