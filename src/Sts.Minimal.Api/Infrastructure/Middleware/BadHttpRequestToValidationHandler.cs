@@ -220,14 +220,12 @@ public sealed partial class BadHttpRequestToValidationHandler : IExceptionHandle
     }
 
     /// <summary>
-    /// Generates a user-friendly error message based on the provided type hint.
+    /// Generates a user-friendly error message based on the parameter type, provided value, and whether the parameter was missing.
     /// </summary>
-    /// <param name="typeHint">
-    /// A string that indicates the expected type of the parameter, used to customize the error message
-    /// (e.g., "int", "guid", "dateonly").
-    /// </param>
-    /// <param name="_">The actual parameter value that caused the error isn't used in this method.</param>
-    /// <returns>A user-friendly error message indicating the expected format or type of the parameter.</returns>
+    /// <param name="typeHint">A hint describing the expected type of the parameter, such as "int", "GUID", or "bool".</param>
+    /// <param name="value">The value of the parameter, if supplied, or null if not provided.</param>
+    /// <param name="isRequiredMissing">A boolean indicating whether the parameter was required but missing.</param>
+    /// <returns>A user-friendly error message describing the issue with the provided parameter.</returns>
     private static string FriendlyError(string? typeHint, string? value, bool isRequiredMissing)
     {
         if (isRequiredMissing)
