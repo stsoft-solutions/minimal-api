@@ -1,3 +1,3 @@
 <Solution>
-    <Project Path="src\Sts.Minimal.Api\Sts.Minimal.Api.csproj" Type="Classic C#"/>
+    <Project Path="src/Sts.Poc.Minimal.Api/Sts.Poc.Minimal.Api.csproj" Type="C#"/>
 </Solution>

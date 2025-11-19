@@ -14,7 +14,7 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 
 ---
 
-> Status: README updated to reflect current project state as of 2025-11-18 (local time).
+> Status: README updated to reflect current project state as of 2025-11-19 10:23 (local time).
 
 ## Features
 
@@ -41,7 +41,7 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 
 #### Bash (runnable)
 ```bash
-dotnet run --project ./src/Sts.Minimal.Api/Sts.Minimal.Api.csproj
+dotnet run --project ./src/Sts.Poc.Minimal.Api/Sts.Poc.Minimal.Api.csproj
 ```
 
 Note: Authorized endpoints require Keycloak to be running. Start it with the steps in "Start local infrastructure" below.
@@ -52,7 +52,7 @@ The API listens by default on:
 - OpenAPI document: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
 
-See `src/Sts.Minimal.Api/Properties/launchSettings.json` to adjust the port and environment.
+See `src/Sts.Poc.Minimal.Api/Properties/launchSettings.json` to adjust the port and environment.
 
 ### Start local infrastructure (Keycloak required; Seq optional)
 
@@ -175,7 +175,7 @@ Use the access token from the steps above where authorization is required.
   - 200: `PostPaymentResponse`
   - 400: Validation problem
 
-See `src/Sts.Minimal.Api/Features/Payment` for implementation details.
+See `src/Sts.Poc.Minimal.Api/Features/Payment` for implementation details.
 
 ---
 
@@ -226,8 +226,8 @@ curl -i "http://localhost:5239/payments/query?referenceId=not-a-guid" -H "Accept
 
 Configuration files:
 
-- `src/Sts.Minimal.Api/appsettings.json`
-- `src/Sts.Minimal.Api/appsettings.Development.json`
+- `src/Sts.Poc.Minimal.Api/appsettings.json`
+- `src/Sts.Poc.Minimal.Api/appsettings.Development.json`
 
 Logging is configured via Serilog (see `Infrastructure/Host/HostAppExtensionsAndFactory.cs`).
 - Sinks: Console and Seq (`http://localhost:5341` by default)
@@ -285,7 +285,7 @@ minimal-api/
 │  └─ keycloak/                  # Local realm export and setup assets
 ├─ http/                         # Runnable HTTP request samples and environments
 ├─ src/
-│  └─ Sts.Minimal.Api/          # Main Minimal API project
+│  └─ Sts.Poc.Minimal.Api/      # Main Minimal API project
 │     ├─ Features/              # Feature‑oriented endpoints and domain models
 │     │  └─ Payment/            # Payment feature (endpoints, handlers, models)
 │     │     ├─ Handlers/        # Endpoint handlers for payment operations
@@ -306,7 +306,7 @@ minimal-api/
 ## Development
 
 - Target framework: `net10.0`
-- Local run: `dotnet run --project src/Sts.Minimal.Api/Sts.Minimal.Api.csproj`
+- Local run: `dotnet run --project src/Sts.Poc.Minimal.Api/Sts.Poc.Minimal.Api.csproj`
 - HTTP logging middleware and Serilog request logging are enabled by default.
 
 ### Tests
