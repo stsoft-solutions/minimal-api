@@ -16,17 +16,21 @@ public sealed class IsoDateOnlyStringTransformer : IOpenApiOperationTransformer
         foreach (var pd in ctx.Description.ParameterDescriptions)
         {
             var pi = TryGetParameterInfo(pd);
-            if (pi is null) continue;
-            if (pi.GetCustomAttribute<StringAsIsoDateAttribute>() is null) continue;
+            if (pi?.GetCustomAttribute<StringAsIsoDateAttribute>() is null) continue;
 
-            var existing = op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
+            var existing =
+                op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
             if (existing is null) continue;
 
             var newSchema = new OpenApiSchema
             {
                 Type = JsonSchemaType.String,
-                Description = "ISO date (yyyy-MM-dd)"
+                Description = "ISO date (yyyy-MM-dd)",
+                Pattern = @"^(?:\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$"
             };
+
+            // Leap-year aware regex (more complex) — validates month/day counts including Feb 29 on leap years
+            // var leapYearAwarePattern = @"^(?:(?:(?:\d{4})-(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01]))|(?:(?:\d{4})-(?:0[469]|11)-(?:0[1-9]|[12]\d|30))|(?:(?:\d{4})-02-(?:0[1-9]|1\d|2[0-8]))|(?:(?:\d{2}(?:0[48]|[2468][048]|[13579][26])|(?:[02468][048]00|[13579][26]00))-02-29))$";
 
             var replacement = new OpenApiParameter
             {

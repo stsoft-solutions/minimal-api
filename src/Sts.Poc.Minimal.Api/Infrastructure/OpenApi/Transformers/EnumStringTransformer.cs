@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
@@ -23,7 +24,8 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
             var enumAttr = pi?.GetCustomAttribute<StringAsEnumAttribute>();
             if (enumAttr is null) continue;
 
-            var existing = op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
+            var existing =
+                op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
             if (existing is null) continue;
 
             var values = BuildAllowedValues(enumAttr.EnumType);
@@ -32,8 +34,17 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
             {
                 Type = JsonSchemaType.String,
                 Description = (existing.Description ?? string.Empty) +
-                              (values.Count > 0 ? $" Allowed values: {string.Join(", ", values)}." : string.Empty)
+                              (values.Count > 0 ? $" Allowed values: {string.Join(", ", values)}." : string.Empty),
             };
+
+            // Populate the OpenAPI enum list so tools (e.g., Swagger UI) can render a dropdown
+            if (values.Count > 0)
+            {
+                // Ensure non-null JsonNode elements to satisfy IList<JsonNode> and avoid CS8619
+                schema.Enum = values
+                    .Select(JsonNode (v) => JsonValue.Create(v))
+                    .ToList();
+            }
 
             var replacement = new OpenApiParameter
             {

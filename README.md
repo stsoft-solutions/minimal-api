@@ -1,6 +1,7 @@
 # minimal-api
 
-A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint organization, request validation, OpenAPI/Scalar API reference, and structured logging with Serilog.
+A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint organization, request validation,
+OpenAPI/Scalar API reference, and structured logging with Serilog.
 
 > Tech stack: .NET 10, ASP.NET Core Minimal APIs, Serilog, Scalar (OpenAPI UI), JWT auth (Keycloak)
 
@@ -40,11 +41,13 @@ A minimal, production‑ready ASP.NET Core Minimal API showcasing clean endpoint
 ### Run the API (Development)
 
 #### Bash (runnable)
+
 ```bash
 dotnet run --project ./src/Sts.Poc.Minimal.Api/Sts.Poc.Minimal.Api.csproj
 ```
 
-Note: Authorized endpoints require Keycloak to be running. Start it with the steps in "Start local infrastructure" below.
+Note: Authorized endpoints require Keycloak to be running. Start it with the steps in "Start local infrastructure"
+below.
 
 The API listens by default on:
 
@@ -59,43 +62,51 @@ See `src/Sts.Poc.Minimal.Api/Properties/launchSettings.json` to adjust the port 
 Both services are started from the same Docker Compose file.
 
 #### Windows PowerShell (runnable)
+
 ```powershell
 # From repo root (returns to original folder when done)
 Push-Location; Set-Location .\docker; docker compose up -d; Pop-Location
 ```
 
 #### Bash (runnable)
+
 ```bash
 # From repo root (runs in a subshell so your cwd doesn't change)
 (cd ./docker && docker compose up -d)
 ```
 
-Note: PowerShell 5.x does not support Bash-style `&&` or subshell parentheses. Use the PowerShell block above when running in Windows PowerShell or PowerShell 7.
+Note: PowerShell 5.x does not support Bash-style `&&` or subshell parentheses. Use the PowerShell block above when
+running in Windows PowerShell or PowerShell 7.
 
 Keycloak (required):
+
 - Admin Console: `http://localhost:8080` (admin/admin)
 - Realm: `sts-realm`
 - Clients:
-  - `sts-api` (public client) — for password grant samples with user credentials
-  - `sts-api-writer` (confidential) — client credentials, has roles: `writer`, `reader`
-  - `sts-api-reader` (confidential) — client credentials, has role: `reader`
+    - `sts-api` (public client) — for password grant samples with user credentials
+    - `sts-api-writer` (confidential) — client credentials, has roles: `writer`, `reader`
+    - `sts-api-reader` (confidential) — client credentials, has role: `reader`
 - Sample user: `api-user` / `pwd` (has roles: `reader`, `writer`)
 
 Seq (optional):
+
 - UI: `http://localhost:5340`
 - Ingestion endpoint: `http://localhost:5341`
 
-Serilog is preconfigured to send logs to Seq at `http://localhost:5341`. If your local Seq does not require an API key, you can remove or override the `apiKey` setting via environment variables or user secrets.
+Serilog is preconfigured to send logs to Seq at `http://localhost:5341`. If your local Seq does not require an API key,
+you can remove or override the `apiKey` setting via environment variables or user secrets.
 
 To stop the infrastructure:
 
 #### Windows PowerShell (runnable)
-```powershell
+
+```bash
 # From repo root (returns to original folder when done)
 Push-Location; Set-Location .\docker; docker compose down --volumes; Pop-Location
 ```
 
 #### Bash (runnable)
+
 ```bash
 # From repo root (runs in a subshell so your cwd doesn't change)
 (cd ./docker && docker compose down)
@@ -106,11 +117,12 @@ Push-Location; Set-Location .\docker; docker compose down --volumes; Pop-Locatio
 You can use Client Credentials (recommended for service-to-service) or Password Grant (sample user).
 
 - JetBrains HTTP Client:
-  - Client Credentials: run `http/Keycloak.ClientCredentials.http` and pick writer/reader as needed
-  - Password Grant: run `http/Keycloak.Token.http` (uses `api-user` / `pwd`)
+    - Client Credentials: run `http/Keycloak.ClientCredentials.http` and pick writer/reader as needed
+    - Password Grant: run `http/Keycloak.Token.http` (uses `api-user` / `pwd`)
 - Curl examples (requires `jq`):
 
 Writer (has roles reader+writer):
+
 ```bash
 TOKEN=$(curl -s -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -119,6 +131,7 @@ TOKEN=$(curl -s -X POST \
 ```
 
 Reader only:
+
 ```bash
 TOKEN=$(curl -s -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -127,6 +140,7 @@ TOKEN=$(curl -s -X POST \
 ```
 
 Optional — Password grant (sample user):
+
 ```bash
 TOKEN=$(curl -s -X POST \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -138,42 +152,120 @@ Then call the API with `Authorization: Bearer <token>`.
 
 ---
 
+## Open API repreresentation
+
+### Route parameters
+
+```csharp
+[FromRoute(Name = "paymentId")]
+[Required]
+[Range(1, 1000)]
+[Description("The ID of the payment to retrieve. Must be a number between 1 and 1000.")]
+int paymentId
+```
+
+```json
+{
+  "name": "paymentId",
+  "in": "path",
+  "description": "The ID of the payment to retrieve. Must be a number between 1 and 1000.",
+  "required": true,
+  "schema": {
+    "maximum": 1000,
+    "minimum": 1,
+    "pattern": "^-?(?:0|[1-9]\\d*)$",
+    "type": "integer",
+    "format": "int32"
+  }
+}
+```
+
+```csharp
+[FromRoute] Guid referenceId
+```
+
+```json
+{
+  "name": "referenceId",
+  "in": "path",
+  "required": true,
+  "schema": {
+    "type": "string",
+    "format": "uuid"
+  }
+}
+```
+
+```csharp
+    [FromRoute] DateOnly date
+```
+
+```json
+{
+  "name": "date",
+  "in": "path",
+  "required": true,
+  "schema": {
+    "type": "string",
+    "format": "date"
+  }
+}
+```
+
+### Query parameters
+
+```csharp
+[FromQuery] [Range(1, 1000)] [Description("Payment ID")]
+int? paymentId
+```
+
+```json
+```
+
+#### /query-param
+
+### Body parameters
+
+--- 
+
 ## API overview
 
 Base path: `/payments`
 
 Authorization model:
+
 - The `/payments` route group enforces the `reader` policy by default (Bearer JWT via Keycloak required).
 - Anonymous exceptions (for demo purposes):
-  - GET `/payments/{paymentId:int}`
-  - GET `/payments/by-reference/{referenceId:guid}`
-  - GET `/payments/by-date/{date}`
+    - GET `/payments/{paymentId:int}`
+    - GET `/payments/by-reference/{referenceId:guid}`
+    - GET `/payments/by-date/{date}`
 - Elevated authorization:
-  - POST `/payments` requires the `writer` role.
+    - POST `/payments` requires the `writer` role.
 
 Use the access token from the steps above where authorization is required.
 
 - GET `/payments/{paymentId:int}` — Retrieve a payment by ID (Stable, Anonymous)
-  - 200: `GetPaymentResponse`
-  - 400: Validation problem
-  - 404: Not found
+    - 200: `GetPaymentResponse`
+    - 400: Validation problem
+    - 404: Not found
 - GET `/payments/by-reference/{referenceId:guid}` — Retrieve a payment by reference ID (Stable, Anonymous)
-  - 200: `GetPaymentResponse`
-  - 400: Validation problem
-  - 404: Not found
+    - 200: `GetPaymentResponse`
+    - 400: Validation problem
+    - 404: Not found
 - GET `/payments/by-date/{date}` — Retrieve a payment by payment date (Stable, Anonymous)
-  - 200: `GetPaymentResponse`
-  - 400: Validation problem
-  - 404: Not found
+    - 200: `GetPaymentResponse`
+    - 400: Validation problem
+    - 404: Not found
 - GET `/payments/query` — Query payments via individual query params (Experimental, requires role: `reader`)
-  - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: YYYY-MM-DD`, `status: PaymentStatus` (accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
-  - 200: `IEnumerable<GetPaymentsItem>`
+    - Query params (camelCase): `paymentId: int? (1..1000)`, `valueDateString: YYYY-MM-DD`, `status: PaymentStatus` (
+      accepts enum name or string alias like `FINISHED`), `referenceId: Guid?`
+    - 200: `IEnumerable<GetPaymentsItem>`
 - GET `/payments/query-param` — Query using a parameter object (Stable, requires role: `reader`)
-  - Query params (kebab-case): `payment-id`, `value-date` (YYYY-MM-DD), `status`
-  - 200: `IEnumerable<GetPaymentsItem>`
+    - Query params (kebab-case): `payment-id`, `value-date` (YYYY-MM-DD), `status`
+    - 200: `IEnumerable<GetPaymentsItem>`
 - POST `/payments` — Create/process a new payment (Stable, requires role: `writer`)
-  - 200: `PostPaymentResponse`
-  - 400: Validation problem
+    - 200: `PostPaymentResponse`
+    - 400: Validation problem
 
 See `src/Sts.Poc.Minimal.Api/Features/Payment` for implementation details.
 
@@ -186,12 +278,15 @@ Ready‑made request files are available under `http/`. You can run them with:
 - JetBrains Rider / IntelliJ HTTP Client (built‑in)
 - VS Code with the REST Client extension
 
-The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` includes three OAuth2 profiles under the `dev` environment:
+The Rider/IntelliJ HTTP Client environment `http/http-client.env.json` includes three OAuth2 profiles under the `dev`
+environment:
+
 - `auth-writer` — Client Credentials with `sts-api-writer` (roles: writer, reader)
 - `auth-reader` — Client Credentials with `sts-api-reader` (role: reader)
 - `auth-id` — Password grant with `sts-api` (user `api-user`)
 
-Sample requests use `{{$auth.token("auth-writer")}}` for write operations and `{{$auth.token("auth-reader")}}` for read-only cases.
+Sample requests use `{{$auth.token("auth-writer")}}` for write operations and `{{$auth.token("auth-reader")}}` for
+read-only cases.
 
 Examples (curl):
 
@@ -230,6 +325,7 @@ Configuration files:
 - `src/Sts.Poc.Minimal.Api/appsettings.Development.json`
 
 Logging is configured via Serilog (see `Infrastructure/Host/HostAppExtensionsAndFactory.cs`).
+
 - Sinks: Console and Seq (`http://localhost:5341` by default)
 - To use Seq locally, run `docker/docker-compose.yml` (see Quick start) and open `http://localhost:5340`
 
@@ -237,7 +333,8 @@ Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.
 
 - Map OpenAPI: `http://localhost:5239/openapi/v1.json`
 - Scalar UI: `http://localhost:5239/scalar`
-- OpenAPI transformers: `JwtBearerSecuritySchemeTransformer` (adds `bearer` security scheme) and `JwtBearerOperationTransformer` (applies JWT requirement to operations)
+- OpenAPI transformers: `JwtBearerSecuritySchemeTransformer` (adds `bearer` security scheme) and
+  `JwtBearerOperationTransformer` (applies JWT requirement to operations)
 - Scalar UI is configured to prefer JWT Bearer; use the Auth button in Scalar to paste a Keycloak token
 
 ---
@@ -247,30 +344,38 @@ Key endpoints configured in code (see `Infrastructure/OpenApi/OpenApiExtensions.
 Tracing and metrics via OTLP are enabled only when an OTLP endpoint is configured.
 
 - Set environment variable `OTEL_EXPORTER_OTLP_ENDPOINT` to a valid URL, e.g.:
-  - Bash: `export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317`
-- The development profile sets: `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:17011` in `Properties/launchSettings.json`. Change it to your collector address or remove it to disable OTLP.
+    - Bash: `export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317`
+- The development profile sets: `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:17011` in
+  `Properties/launchSettings.json`. Change it to your collector address or remove it to disable OTLP.
 - When not set or invalid, the app starts normally and logs: "OTLP endpoint not configured".
 
 ---
 
 ## Error handling & validation
 
-- Data annotations and custom endpoint filter `AddDataAnnotationsValidation()` provide model/request validation for bodies and parameter objects.
-- Friendly binding errors for query/path parameters: when ASP.NET Core fails to bind a value (e.g., `paymentId=abc`, `referenceId=xyz`, `valueDate=2024-06-35`), the custom exception handler `BadHttpRequestToValidationHandler` converts the `BadHttpRequestException` into a `400` response with `application/problem+json` using `ValidationProblemDetails`.
-  - Registration: see `Infrastructure/OpenApi/OpenApiExtensions.cs` → `services.AddExceptionHandler<BadHttpRequestToValidationHandler>();` and `app.UseExceptionHandler();`
-  - Example payload:
+- Data annotations and custom endpoint filter `AddDataAnnotationsValidation()` provide model/request validation for
+  bodies and parameter objects.
+- Friendly binding errors for query/path parameters: when ASP.NET Core fails to bind a value (e.g., `paymentId=abc`,
+  `referenceId=xyz`, `valueDate=2024-06-35`), the custom exception handler `BadHttpRequestToValidationHandler` converts
+  the `BadHttpRequestException` into a `400` response with `application/problem+json` using `ValidationProblemDetails`.
+    - Registration: see `Infrastructure/OpenApi/OpenApiExtensions.cs` →
+      `services.AddExceptionHandler<BadHttpRequestToValidationHandler>();` and `app.UseExceptionHandler();`
+    - Example payload:
 
 ```json
 {
   "title": "One or more parameters are invalid.",
   "status": 400,
   "errors": {
-    "paymentId": ["Invalid number. Must be an integer."]
+    "paymentId": [
+      "Invalid number. Must be an integer."
+    ]
   }
 }
 ```
 
 Common messages include:
+
 - Integers: "Invalid number. Must be an integer."
 - GUIDs: "Invalid format. Must be a valid GUID."
 - Dates: "Invalid date. Use yyyy-MM-dd."
@@ -279,6 +384,7 @@ Common messages include:
 ---
 
 ## Project structure
+
 ```
 minimal-api/
 ├─ docker/                       # Docker resources for local tooling (Seq, Keycloak)
@@ -311,7 +417,8 @@ minimal-api/
 
 ### Tests
 
-This sample currently doesn’t include automated tests. You can introduce them with `xUnit`/`NUnit` and `WebApplicationFactory` for integration tests.
+This sample currently doesn’t include automated tests. You can introduce them with `xUnit`/`NUnit` and
+`WebApplicationFactory` for integration tests.
 
 ---
 
