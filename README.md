@@ -156,6 +156,8 @@ Then call the API with `Authorization: Bearer <token>`.
 
 ### Route parameters
 
+**Int**
+
 ```csharp
 [FromRoute(Name = "paymentId")]
 [Required]
@@ -180,6 +182,8 @@ int paymentId
 }
 ```
 
+**Guid**
+
 ```csharp
 [FromRoute] Guid referenceId
 ```
@@ -195,6 +199,8 @@ int paymentId
   }
 }
 ```
+
+**DateOnly**
 
 ```csharp
     [FromRoute] DateOnly date
@@ -214,15 +220,166 @@ int paymentId
 
 ### Query parameters
 
+**Nullable Int**
+
 ```csharp
 [FromQuery] [Range(1, 1000)] [Description("Payment ID")]
 int? paymentId
 ```
 
 ```json
+{
+  "name": "paymentId",
+  "in": "query",
+  "description": "Payment ID",
+  "schema": {
+    "maximum": 1000,
+    "minimum": 1,
+    "pattern": "^-?(?:0|[1-9]\\d*)$",
+    "type": [
+      "integer",
+      "string"
+    ],
+    "format": "int32"
+  }
+}
 ```
 
-#### /query-param
+**Date (ISO-string)**
+
+```csharp
+[FromQuery] [Description("Value date")] [StringAsIsoDate]
+string? valueDateString,
+```
+
+```json
+ {
+  "name": "valueDateString",
+  "in": "query",
+  "description": "Value date",
+  "schema": {
+    "pattern": "^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])$",
+    "type": "string",
+    "description": "ISO date (yyyy-MM-dd)"
+  }
+}
+```
+
+**String as Enum**
+
+```csharp
+[FromQuery] [Description("Payment's status")] [StringAsEnum(typeof(PaymentStatus))]
+string? status,
+```
+
+```json
+ {
+  "name": "status",
+  "in": "query",
+  "description": "Payment's status",
+  "schema": {
+    "enum": [
+      "Pending",
+      "Completed",
+      "Failed",
+      "FINISHED"
+    ],
+    "type": "string",
+    "description": "Payment's status"
+  }
+}
+```
+
+**Nullable Guid**
+
+```csharp
+[FromQuery] [Description("Reference ID")]
+Guid? referenceId
+```
+
+```json
+{
+  "name": "referenceId",
+  "in": "query",
+  "description": "Reference ID",
+  "schema": {
+    "type": "string",
+    "format": "uuid"
+  }
+}
+```
+
+**Nullable DateOnly**
+
+```csharp
+[FromQuery] [Description("Value date 1")]
+DateOnly? valueDate
+```
+
+```json
+{
+  "name": "valueDate",
+  "in": "query",
+  "description": "Value date 1",
+  "schema": {
+    "type": "string",
+    "format": "date"
+  }
+}
+```
+
+**Enum (nullable)**
+
+```csharp
+[FromQuery] [Description("Payment's status")]
+PaymentStatus? statusEnumNullable
+```
+
+```json
+{
+  "components": {
+    "schemas": {
+      "PaymentStatus": {
+        "enum": [
+          "Pending",
+          "FINISHED",
+          "Failed",
+          null
+        ]
+      }
+    }
+  },
+  "parameters": [
+    {
+      "name": "statusEnumNullable",
+      "in": "query",
+      "description": "Payment's status",
+      "schema": {
+        "$ref": "#/components/schemas/PaymentStatus"
+      }
+    }
+  ]
+}
+```
+
+**Enum (non-nullable)**
+I don't like this one, because we can't distinguish between `null` and `FINISHED` (which is a valid value).
+```csharp
+[FromQuery] [Description("Payment's status")]
+PaymentStatus statusEnum
+```
+
+```json
+ {
+  "name": "statusEnum",
+  "in": "query",
+  "description": "Payment's status",
+  "required": true,
+  "schema": {
+    "$ref": "#/components/schemas/PaymentStatus"
+  }
+}
+```
 
 ### Body parameters
 

@@ -28,25 +28,30 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
                 op.Parameters.FirstOrDefault(p => string.Equals(p.Name, pd.Name, StringComparison.OrdinalIgnoreCase));
             if (existing is null) continue;
 
+            // Check if the parameter is a string
+            if (existing.Schema?.Type != JsonSchemaType.String) continue;
+
+            // Get enum values
             var values = BuildAllowedValues(enumAttr.EnumType);
 
             var schema = new OpenApiSchema
             {
-                Type = JsonSchemaType.String,
-                Description = (existing.Description ?? string.Empty) +
-                              (values.Count > 0 ? $" Allowed values: {string.Join(", ", values)}." : string.Empty),
+                Type = JsonSchemaType.String
             };
+
+            // Copy description from existing parameter
+            if (existing.Description is { Length: > 0 })
+                schema.Description = existing.Description;
 
             // Populate the OpenAPI enum list so tools (e.g., Swagger UI) can render a dropdown
             if (values.Count > 0)
-            {
                 // Ensure non-null JsonNode elements to satisfy IList<JsonNode> and avoid CS8619
                 schema.Enum = values
                     .Select(JsonNode (v) => JsonValue.Create(v))
                     .ToList();
-            }
 
-            var replacement = new OpenApiParameter
+            // Replace the existing parameter with the updated schema
+            var replacement = new OpenApiParameter()
             {
                 Name = existing.Name,
                 Description = schema.Description,
@@ -54,7 +59,14 @@ public sealed class EnumStringTransformer : IOpenApiOperationTransformer
                 In = existing.In,
                 Deprecated = existing.Deprecated,
                 AllowEmptyValue = existing.AllowEmptyValue,
-                Schema = schema
+                Schema = schema, 
+                AllowReserved = existing.AllowReserved, 
+                Content = existing.Content,
+                Example = existing.Example, 
+                Examples = existing.Examples, 
+                Explode = existing.Explode,
+                Extensions = existing.Extensions, 
+                Style = existing.Style
             };
 
             var index = op.Parameters.IndexOf(existing);
